@@ -11,7 +11,7 @@
 
 <meta name="author" content="Eric Warren" />
 
-<meta name="date" content="2023-10-31" />
+<meta name="date" content="2023-11-01" />
 
 <title>ST 558 Project 3</title>
 
@@ -358,7 +358,7 @@ pre code {
 
 <h1 class="title toc-ignore">ST 558 Project 3</h1>
 <h4 class="author">Eric Warren</h4>
-<h4 class="date">2023-10-31</h4>
+<h4 class="date">2023-11-01</h4>
 
 </div>
 
@@ -377,13 +377,6 @@ looks like.</p>
   diabetes &lt;- read_csv(&quot;diabetes_binary_health_indicators_BRFSS2015.csv&quot;) %&gt;% 
     mutate(Education = ifelse(Education %in% c(1, 2), 1, Education))
 )</code></pre>
-<pre><code>## Rows: 253680 Columns: 22
-## ── Column specification ─────────────────────────────────────────────────────────
-## Delimiter: &quot;,&quot;
-## dbl (22): Diabetes_binary, HighBP, HighChol, CholCheck, BMI, Smoker, Stroke, ...
-## 
-## ℹ Use `spec()` to retrieve the full column specification for this data.
-## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
 <pre><code>## # A tibble: 253,680 × 22
 ##    Diabetes_binary HighBP HighChol CholCheck   BMI Smoker Stroke
 ##              &lt;dbl&gt;  &lt;dbl&gt;    &lt;dbl&gt;     &lt;dbl&gt; &lt;dbl&gt;  &lt;dbl&gt;  &lt;dbl&gt;

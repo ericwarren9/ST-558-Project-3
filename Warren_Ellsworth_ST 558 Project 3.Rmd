@@ -3,6 +3,8 @@ title: "ST 558 Project 3"
 author: "Eric Warren"
 date: "`r Sys.Date()`"
 urlcolor: blue
+params:
+  Education: "Grade 12 or GED -- High school graduate"
 #output: github_document
 ---
 
@@ -143,9 +145,13 @@ diabetes
 
 The first thing we want to do is subset our data by an education level. We are perform this first before looking at some different aspects of exploratory data analysis.
 ```{r filter data}
-# Change this for automation
+# Change this for automation (this is just to make it easier for us right now)
 filtered_data <- diabetes %>% 
   filter(Education == "Grade 12 or GED (High school graduate)")
+
+# Automated filtering to get data for correct file
+# filtered_data <- diabetes %>% 
+#   filter(Education = params$Education)
 ```
 
 Now we are going to explore our data by doing some different summarizes that we are going to outline below.
