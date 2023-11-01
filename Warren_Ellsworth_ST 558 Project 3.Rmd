@@ -10,12 +10,34 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r render into md files, echo=FALSE, eval=FALSE}
+#get unique education
+educationIDs <- unique(diabetes$Education)
+
+#create filenames
+output_file <- paste0(educationIDs, ".md")
+
+#create a list for each team with just the education name parameter
+params = lapply(educationIDs, FUN = function(x){list(Education = x)})
+
+#put into a data frame 
+reports <- tibble(output_file, params)
+
+# Make a function to render the md files
+library(rmarkdown)
+apply(reports, MARGIN = 1,
+      FUN = function(x){
+				render(input = "Warren_Ellsworth_ST 558 Project 3.Rmd", output_file = x[[1]], params = x[[2]])
+ 				})
+```
+
 # Introduction
 
 # Reading in the Data
 
 Here we are going to read in our `diabetes` data and then combine groups 1 and 2 together. Then we are going to print the first couple of observations just to give an idea to our viewer what our data looks like.
 ```{r read in}
+library(tidyverse)
 (
   diabetes <- read_csv("diabetes_binary_health_indicators_BRFSS2015.csv") %>% 
     mutate(Education = ifelse(Education %in% c(1, 2), 1, Education))
@@ -89,9 +111,9 @@ diabetes <- diabetes %>%
       labels = c(
         "Never attended school or only kindergarten or Grades 1 through 8",
         "Grades 9 through 11",
-        "Grade 12 or GED (High school graduate)",
-        "College 1 year to 3 years (Some college or technical school)",
-        "College 4 years or more (College graduate)"
+        "Grade 12 or GED -- High school graduate",
+        "College 1 year to 3 years -- Some college or technical school",
+        "College 4 years or more -- College graduate"
       ),
       ordered = TRUE
     ),
