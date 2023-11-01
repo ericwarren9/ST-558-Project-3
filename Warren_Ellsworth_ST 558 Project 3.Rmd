@@ -7,7 +7,10 @@ params:
   Education: "Grade 12 or GED -- High school graduate"
 #output: github_document
 ---
+<<<<<<< HEAD
 jgdaf
+=======
+>>>>>>> 0ae1667bd9b7b797b0f917a9f2011e54ad1d5269
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
