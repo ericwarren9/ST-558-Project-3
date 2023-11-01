@@ -3,7 +3,7 @@ title: "ST 558 Project 3"
 author: "Eric Warren"
 date: "`r Sys.Date()`"
 urlcolor: blue
-output: html_document
+#output: html_document
 ---
 
 ```{r setup, include=FALSE}
