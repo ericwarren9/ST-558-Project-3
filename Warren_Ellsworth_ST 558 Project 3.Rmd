@@ -1,0 +1,147 @@
+---
+title: "ST 558 Project 3"
+author: "Eric Warren"
+date: "`r Sys.Date()`"
+urlcolor: blue
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introduction
+
+# Reading in the Data
+
+Here we are going to read in our `diabetes` data and then combine groups 1 and 2 together. Then we are going to print the first couple of observations just to give an idea to our viewer what our data looks like.
+```{r read in}
+(
+  diabetes <- read_csv("diabetes_binary_health_indicators_BRFSS2015.csv") %>% 
+    mutate(Education = ifelse(Education %in% c(1, 2), 1, Education))
+)
+```
+
+We can see that there are many numerical variables that should not be an instead are *factors*. This is something we should correct. We can use the [helper website](https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset/) as a tool to tell us which columns should be factors, as opposed to the numeric columns. We are going to convert the corresponding variables to factors.
+```{r convert to factors}
+# Start with only 2 level factors since many are and we do not want to accidentally make a numeric column with not many unique values be a factor. 
+col_names <- sapply(diabetes, function(col) length(unique(col)) <= 2)
+
+# Turn these columns into factors. We also only want yes or no factors right now.
+diabetes[ , col_names] <- lapply(
+  diabetes[ , col_names], 
+  function(x) 
+    factor(
+      x,
+      levels = c(0, 1),
+      labels = c("no", "yes"),
+      ordered = TRUE
+    )
+)
+
+# Fix the "Sex" column to female and male, along with "GenHlth", "Age", "Education", and "Income"
+diabetes <- diabetes %>%
+  mutate(
+    Sex = factor(
+      Sex, 
+      levels = c(0, 1),
+      labels = c(
+        "female", 
+        "male"
+      ),   
+      ordered = TRUE
+    ),
+    GenHlth = factor(
+      GenHlth,
+      levels = 1:5,
+      labels = c(
+        "excellent",
+        "very good",
+        "good",
+        "fair",
+        "poor"
+      ),
+      ordered = TRUE
+    ),
+    Age = factor(
+      Age,
+      levels = 1:13,
+      labels = c(
+        "18-24",
+        "25-29",
+        "30-34",
+        "35-39",
+        "40-44",
+        "45-49",
+        "50-54",
+        "55-59",
+        "60-64",
+        "65-69",
+        "70-74",
+        "75-79",
+        "80+"
+      ),
+      ordered = TRUE
+    ),
+    Education = factor(
+      Education,
+      levels = c(1, 3, 4, 5, 6),
+      labels = c(
+        "Never attended school or only kindergarten or Grades 1 through 8",
+        "Grades 9 through 11",
+        "Grade 12 or GED (High school graduate)",
+        "College 1 year to 3 years (Some college or technical school)",
+        "College 4 years or more (College graduate)"
+      ),
+      ordered = TRUE
+    ),
+    Income = factor(
+      Income,
+      levels = 1:8,
+      labels = c(
+        "Less than $10,000",
+        "$10,000 to less than $15,000",
+        "$15,000 to less than $20,000",
+        "$20,000 to less than $25,000",
+        "$25,000 to less than $35,000",
+        "$35,000 to less than $50,000",
+        "$50,000 to less than $75,000",
+        "$75,000 or more"
+      )
+    )
+  )
+```
+
+Now we have the data in the correct form and we are going to take a quick glance to call the changes so we can see all the new modifications.
+```{r check data set}
+diabetes
+```
+
+# Summarizations
+
+The first thing we want to do is subset our data by an education level. We are perform this first before looking at some different aspects of exploratory data analysis.
+```{r filter data}
+# Change this for automation
+filtered_data <- diabetes %>% 
+  filter(Education == "Grade 12 or GED (High school graduate)")
+```
+
+Now we are going to explore our data by doing some different summarizes that we are going to outline below.
+
+# Modeling
+
+## Log Loss
+
+## Logistic Regression
+
+## LASSO Logistic Regression
+
+## Classification Tree
+
+## Random Forest
+
+## Model that Eric Chooses -- change title to name of model -- **Maybe either LDA, QDA, or Naive Bayes**
+
+## Model that Chandler Chooses -- change title to name of model
+
+# Final Model Selection
