@@ -331,7 +331,7 @@ Now that we have split our data into a testing and training set, we can start wi
 
 ## Log Loss
 
-
+Log loss is also known as logarithmic loss or cross-entropy loss. This is used as a common evaluation metric for classification models in which the response variable follows a binomial distribution (or binary). It measures the performance of a model by measuring the difference between predicted probabilities and the actual values. We tend to use log loss because it provides a continuous measure of our model’s performance, which in return makes it very suitable for optimization algorithms. We also like log loss because it penalizes "confident" (meaning predictions that are heavily in one direction -- i.e. saying the prediction is 0.1 is very close to 0) **and** incorrect predictions more heavily, which incentivizes more calibrated or correlated probability estimates. Lastly, log loss is interpreted as the logarithmic measure of the likelihood of predicted probabilities aligning with the true classification. So when comparing other models log loss will do the best at giving us a model with the "most accurate" predictions unlike other methods. Therefore, we will use log loss as lower values indicate better models (and thus, better predictions).
 
 ## Logistic Regression
 
