@@ -240,8 +240,11 @@ filter_data_age_percent %>%
 
 Typically we expect that `Age` will play a factor as one gets older, their chance of diabetes tends to increase. [The NIH](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9843502/#:~:text=Advanced%20age%20is%20a%20major%20risk%20factor%20for%20diabetes%20and%20prediabetes.&text=Therefore%2C%20the%20elderly%20has%20a,%2C%20retinal%2C%20and%20renal%20systems.) describes some of the reasons why in a better way than we can by the experiment they design with the corresponding results.
 
-A lot of people tend to say that [BMI](https://www.nhlbi.nih.gov/health/educational/lose_wt/BMI/bmicalc.htm) is a good indicator of one's health. Some people may argue that the system is faulty. Take for example someone who is deemed in fantastic health. As sports fans, I typically point to NBA superstar LeBron James. According to [his bio at the time this piece was written](https://en.wikipedia.org/wiki/LeBron_James), he was listed at 6 foot 9 inches tall with weighing in at 250 pounds. His BMI is 26.8, which is considered overweight, while someone (who might be a co-author of this piece) might be listed at 5 foot 11 inches tall with weighing in around 175 pounds with a BMI at 24.4 which is considered normal weight. LeBron James is considered one of the healthiest humans in the world, as this issue arises from BMI not taking into account possible muscle mass. But we can still examine the breakdowns of BMI (as an indicator of someone being overweight and potentially not the healthiest) and seeing if there is a correlation between BMI and getting diabetes.
+A lot of people tend to say that [BMI](https://www.nhlbi.nih.gov/health/educational/lose_wt/BMI/bmicalc.htm) is a good indicator of one's health. Some people may argue that the system is faulty. Take for example someone who is deemed in fantastic health. As sports fans, I typically point to NBA superstar LeBron James. According to [his bio at the time this piece was written](https://en.wikipedia.org/wiki/LeBron_James), he was listed at 6 foot 9 inches tall with weighing in at 250 pounds. His BMI is 26.8, which is considered overweight, while someone (who might be a co-author of this piece) might be listed at 5 foot 11 inches tall with weighing in around 175 pounds with a BMI at 24.4 which is considered normal weight. LeBron James is considered one of the healthiest humans in the world, as this issue arises from BMI not taking into account possible muscle mass. But we can still examine the breakdowns of BMI (as an indicator of someone being overweight and potentially not the healthiest) and seeing if there is a correlation between BMI and getting diabetes. Note a healthy BMI is between 20 and 24.9. 
 ```{r bmi and diabetes}
+# Show summary of BMI
+summary(filtered_data$BMI)
+
 # Set optimal number of bins with this formula; uses Sturges Rule
 bw <- min(ceiling(log2(length(filtered_data$BMI) + 1)), 30)
 
@@ -315,7 +318,20 @@ Again here we are trying to find any kind of significant difference with the per
 
 # Modeling
 
+Now split the data set into a training and testing set. Use $p = 0.7$ as told in the directions. The training data will be used to help make the models and the testing data will help us determine our "best" model.
+```{r split knn data}
+library(caret)
+set.seed(999)
+index <- createDataPartition(filtered_data$Diabetes_binary, p = 0.7, list = FALSE)
+train <- filtered_data[index, ]
+test <- filtered_data[-index, ]
+```
+
+Now that we have split our data into a testing and training set, we can start with examining different models to best predict on whether someone with certain characteristics is likely to get diabetes.
+
 ## Log Loss
+
+
 
 ## Logistic Regression
 
