@@ -19,6 +19,40 @@ library(caret)
 library(e1071)
 ```
 
+# Introduction
+
+The objective of this program is to create predictive models and automate R markdown reports utilizing the [`Diabetes Health Indicators Dataset`](https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset/). Specifically, we'll be using the `diabetes_binary_health_indicators_BRFSS2015.csv` data. This is a data set of survey responses to the CDC's 2015 `Behavioral Risk Factor Surveillance System (BRFSS)`. The BRFSS is a "health-related telephone survey that is collected annually by the CDC. Each year, the survey collects responses from over 400,000 Americans on health-related risk behaviors, chronic health conditions, and the use of preventative services."
+
+The data set has 21 feature variables and one response, `Diabetes_binary`, that has 2 classes. 0 indicates no diabetes, while a 1 indicates pre-diabetes or having diabetes. While there are numerous features, some of the most important that we utilized in our analysis were:  
+
+* `HighBP`: HighBP corresponds to High Blood Pressure and takes on 0 if no high blood pressure and 1 if high blood pressure  
+* `HighChol`: HighChol corresponds to High Cholesterol and takes on 0 if no high blood cholesteroland 1 if high cholesterol  
+* `CholCheck`: CholCheck corresponds to Cholesterol Check and takes on 0 if no cholesterol check and 1 if cholesterol check    
+* `BMI`: BMI corresponds to Body Mass Index and takes on numeric integers  
+* `PhysActivity`: PhysActivity corresponds to physical activity in the past 30 days - not including job. It takes on 0 if no and 1 if yes  
+* `HvyAlcoholConsump`: HvyAlcoholConsump corresponds to heavy drinkers (adult men having more than 14 drinks per week and adult women having more than 7 drinks per week). The values are 0 if no, 1 if yes  
+* `GenHlth`: GenHlth is on a scale of 1 to 5 and asks, would you say that in general your health is: 1 = excellent, 2 = very good, 3 = good, 4 = fair, and 5 = poor  
+* `MentHlth`: MentHlth asks to think about your mental health, which includes stress, depression, and problems with emotions, for how many days during the past 30 days was your mental health no good? This is on a scale of 1-30 days  
+* `PhysHlth`: PhysHlth asks to think about your physical health, which includes physical illness and injury, for how many days during the past 30 days was your physical health no good? This is on a scale of 1-30 days  
+* `Sex`: Sex corresponds to o for females and 1 for males  
+* `Age`: Age is a 13 level age category with corresponding age intervals taking on a value between 1 and 13
+
+Utilizing these features and response, we will first do basic exploratory data analysis (EDA) to produce meaningful summary statistics and plots about the our data, especially as it relates to our response. The summary statistics will comprise means, group standard deviations, and contingency tables. Since the `Education` level will change for each report and corresponding data, a discussion of what to look for in the summary statistics and plots will be provided as opposed to direct trends. 
+
+After analyzing the data through our EDA, we will create models for predicting the `Diabetes_binary` variable using the caret package. These models will include three candidate `logistic regression` models, a `LASSO logistic regression` model, a `classification tree` model, a `random forest` model, ****ERIC's MODEL*****, and a `support vector classifier` model. A brief description of each model will be given followed by fitting the model. Each model will utilize `log loss` as our metric to evaluate the models, `5 fold cross-validation` to select the best model, and will have a `tuning grid` of parameters if applicable. After selecting the best logistic regression model from the 3 candidate models, we will have six different models that we will compare. The overall winner will be selected from the 6 models utilizing the test set.
+
+# Reading in the Data
+
+Here we are going to read in our `diabetes` data and then combine groups 1 and 2 together. Then we are going to print the first couple of observations just to give an idea to our viewer what our data looks like.
+```{r read in}
+(
+  diabetes <- read_csv("diabetes_binary_health_indicators_BRFSS2015.csv") %>% 
+    mutate(Education = ifelse(Education %in% c(1, 2), 1, Education))
+)
+```
+
+# ADD COMMENTARY HERE
+
 ```{r render into md files, echo=FALSE, eval=FALSE}
 #get unique education
 educationIDs <- unique(diabetes$Education)
@@ -38,18 +72,6 @@ apply(reports, MARGIN = 1,
       FUN = function(x){
 				render(input = "Warren_Ellsworth_ST 558 Project 3.Rmd", output_file = x[[1]], params = x[[2]])
  				})
-```
-
-# Introduction
-
-# Reading in the Data
-
-Here we are going to read in our `diabetes` data and then combine groups 1 and 2 together. Then we are going to print the first couple of observations just to give an idea to our viewer what our data looks like.
-```{r read in}
-(
-  diabetes <- read_csv("diabetes_binary_health_indicators_BRFSS2015.csv") %>% 
-    mutate(Education = ifelse(Education %in% c(1, 2), 1, Education))
-)
 ```
 
 We can see that there are many numerical variables that should not be an instead are *factors*. This is something we should correct. We can use the [helper website](https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset/) as a tool to tell us which columns should be factors, as opposed to the numeric columns. We are going to convert the corresponding variables to factors.
@@ -165,7 +187,6 @@ Now we have the data in the correct form and we are going to take a quick glance
 ```{r check data set}
 diabetes
 ```
-
 
 # Summarizations
 
@@ -480,8 +501,8 @@ train <- filtered_data_for_analysis[index, ]
 test <- filtered_data_for_analysis[-index, ]
 
 # Make Diabetes binary a number
-train <- train %>% 
-  mutate(Diabetes_binary = as.numeric(Diabetes_binary) - 1)
+#train <- train %>% 
+  #mutate(Diabetes_binary = as.numeric(Diabetes_binary) - 1)
 ```
 
 Now that we have split our data into a testing and training set, we can start with examining different models to best predict on whether someone with certain characteristics is likely to get diabetes.
