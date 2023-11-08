@@ -499,10 +499,6 @@ set.seed(999)
 index <- createDataPartition(filtered_data_for_analysis$Diabetes_binary, p = 0.7, list = FALSE)
 train <- filtered_data_for_analysis[index, ]
 test <- filtered_data_for_analysis[-index, ]
-
-# Make Diabetes binary a number
-#train <- train %>% 
-  #mutate(Diabetes_binary = as.numeric(Diabetes_binary) - 1)
 ```
 
 Now that we have split our data into a testing and training set, we can start with examining different models to best predict on whether someone with certain characteristics is likely to get diabetes.
@@ -545,7 +541,7 @@ set.seed(999)
 
 # Train the first model we create
 log_model_1 <- train(
-  Diabetes_binary ~ BMI + GenHlth + HighBP + HighChol + Age + HvyAlcoholConsump + CholCheck + Sex, 
+  as.numeric(Diabetes_binary) - 1 ~ BMI + GenHlth + HighBP + HighChol + Age + HvyAlcoholConsump + CholCheck + Sex, 
   data = train, 
   method = "glm", 
   family = "binomial",
@@ -577,7 +573,7 @@ set.seed(999)
 
 # Train the first model we create
 log_model_2 <- train(
-  Diabetes_binary ~ BMI + GenHlth + HighBP*HighChol + Age*Sex + HvyAlcoholConsump + CholCheck, 
+  as.numeric(Diabetes_binary) - 1 ~ BMI + GenHlth + HighBP*HighChol + Age*Sex + HvyAlcoholConsump + CholCheck, 
   data = train, 
   method = "glm", 
   family = "binomial",
@@ -600,7 +596,7 @@ set.seed(999)
 
 # Train the first model we create
 log_model_3 <- train(
-  Diabetes_binary ~ I(BMI^2) + GenHlth + HighBP + HighChol + Age + HvyAlcoholConsump + CholCheck + Sex, 
+  as.numeric(Diabetes_binary) - 1 ~ I(BMI^2) + GenHlth + HighBP + HighChol + Age + HvyAlcoholConsump + CholCheck + Sex, 
   data = train, 
   method = "glm", 
   family = "binomial",
