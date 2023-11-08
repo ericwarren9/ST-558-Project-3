@@ -422,7 +422,6 @@ groups. We'd be interested in seeing if those who don't have diabetes have a hig
 health categories such as excellent or very good, or good. In contrast, we'd want to see if those who do have diabetes have 
 a higher frequency of individuals with poorer health. This may indicate general health conditions being a good predictor to use in classifying whether a person has or does not have diabetes.
 
-
 From the `National Library of Medicine`, there was a publishing that discussed hypertension being twice as frequent in patients with diabetes compared with those who don't. Lets see how that compares with our data, specifically the counts of `high blood pressure` across those who do verse don't have diabetes. We can take this a step further by shading each of the counts by `sex`. We can visualize this with a bar chart for the different groups.
 ```{r high blood pressure box plot}
 #look at high blood pressure by sex and diabetes level
@@ -466,8 +465,6 @@ filtered_data %>%
 ```
 
 If there are significant differences in the proportion of people who are physically active without diabetes verse those who have diabetes, there may be a correlation between being physically active and having diabetes. More testing would need to be done, but this can provide some evidence for the inital suspicion.
-
-**Include any plots below that might be interesting**
 
 # Modeling
 
