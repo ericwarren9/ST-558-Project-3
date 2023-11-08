@@ -1,0 +1,616 @@
+---
+title: "ST 558 Project 3"
+author: "Eric Warren"
+date: "`r Sys.Date()`"
+urlcolor: blue
+params:
+  Education: "Grade 12 or GED -- High school graduate"
+#output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, 
+                      cache = TRUE)
+library(tidyverse)
+library(scales)
+library(plyr)
+library(GGally)
+library(caret)
+library(e1071)
+```
+
+```{r render into md files, echo=FALSE, eval=FALSE}
+#get unique education
+educationIDs <- unique(diabetes$Education)
+
+#create filenames
+output_file <- paste0(educationIDs, ".md")
+
+#create a list for each team with just the education name parameter
+params = lapply(educationIDs, FUN = function(x){list(Education = x)})
+
+#put into a data frame 
+reports <- tibble(output_file, params)
+
+# Make a function to render the md files
+library(rmarkdown)
+apply(reports, MARGIN = 1,
+      FUN = function(x){
+				render(input = "Warren_Ellsworth_ST 558 Project 3.Rmd", output_file = x[[1]], params = x[[2]])
+ 				})
+```
+
+# Introduction
+
+# Reading in the Data
+
+Here we are going to read in our `diabetes` data and then combine groups 1 and 2 together. Then we are going to print the first couple of observations just to give an idea to our viewer what our data looks like.
+```{r read in}
+(
+  diabetes <- read_csv("diabetes_binary_health_indicators_BRFSS2015.csv") %>% 
+    mutate(Education = ifelse(Education %in% c(1, 2), 1, Education))
+)
+```
+
+We can see that there are many numerical variables that should not be an instead are *factors*. This is something we should correct. We can use the [helper website](https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset/) as a tool to tell us which columns should be factors, as opposed to the numeric columns. We are going to convert the corresponding variables to factors.
+```{r convert to factors}
+# Fix the "Sex" column to female and male, along with "GenHlth", "Age", "Education", and "Income"
+diabetes <- diabetes %>%
+  mutate(
+    Sex = factor(
+      Sex, 
+      levels = c(0, 1),
+      labels = c(
+        "female", 
+        "male"
+      ),   
+      ordered = TRUE
+    ),
+    GenHlth = factor(
+      GenHlth,
+      levels = 1:5,
+      labels = c(
+        "excellent",
+        "very good",
+        "good",
+        "fair",
+        "poor"
+      ),
+      ordered = TRUE
+    ),
+    Age = factor(
+      Age,
+      levels = 1:13,
+      labels = c(
+        "18-24",
+        "25-29",
+        "30-34",
+        "35-39",
+        "40-44",
+        "45-49",
+        "50-54",
+        "55-59",
+        "60-64",
+        "65-69",
+        "70-74",
+        "75-79",
+        "80+"
+      ),
+      ordered = TRUE
+    ),
+    Education = factor(
+      Education,
+      levels = c(1, 3, 4, 5, 6),
+      labels = c(
+        "Never attended school or only kindergarten or Grades 1 through 8",
+        "Grades 9 through 11",
+        "Grade 12 or GED -- High school graduate",
+        "College 1 year to 3 years -- Some college or technical school",
+        "College 4 years or more -- College graduate"
+      ),
+      ordered = TRUE
+    ),
+    Income = factor(
+      Income,
+      levels = 1:8,
+      labels = c(
+        "Less than $10,000",
+        "$10,000 to less than $15,000",
+        "$15,000 to less than $20,000",
+        "$20,000 to less than $25,000",
+        "$25,000 to less than $35,000",
+        "$35,000 to less than $50,000",
+        "$50,000 to less than $75,000",
+        "$75,000 or more"
+      )
+    )
+  )
+
+# Get columns that have more than 2 factor levels
+big_cols <- as.data.frame(sapply(diabetes, function(x) length(unique(x)) > 2))
+names <- rownames(big_cols)
+rownames(big_cols) <- NULL
+big_cols <- cbind(names, big_cols)
+colnames(big_cols) <- c("name", "value")
+big_cols <- big_cols %>%
+  filter(value == TRUE) # Use big_cols$name to get the list of columns that meet this requirement for later data manipulation
+
+
+# Make a numeric column that is supposed to be yes or no be a factor. 
+# Get the columns that are supposed to be yes or no.
+col_names <- as.data.frame(sapply(diabetes, is.numeric))
+names <- rownames(col_names)
+rownames(col_names) <- NULL
+col_names <- cbind(names, col_names)
+colnames(col_names) <- c("name", "value")
+col_names <- col_names %>%
+  mutate(value = ifelse(name %in% big_cols$name, FALSE, value)) %>%
+  filter(value == TRUE)
+
+
+# Turn these columns into factors. We also only want yes or no factors right now.
+diabetes[, col_names$name] <- lapply(
+  diabetes[ , col_names$name], 
+  function(x) 
+    factor(
+      x,
+      levels = c(0, 1),
+      labels = c("no", "yes"),
+      ordered = TRUE
+    )
+)
+```
+
+Now we have the data in the correct form and we are going to take a quick glance to call the changes so we can see all the new modifications.
+```{r check data set}
+diabetes
+```
+
+
+# Summarizations
+
+The first thing we want to do is subset our data by an education level. We are perform this first before looking at some different aspects of exploratory data analysis.
+```{r filter data}
+# Change this for automation (this is just to make it easier for us right now)
+filtered_data <- diabetes %>% 
+  filter(Education == "Grade 12 or GED -- High school graduate")
+
+# Automated filtering to get data for correct file
+# filtered_data <- diabetes %>% 
+#   filter(Education = params$Education)
+```
+
+Now we are going to explore our data by doing some different summaries that we are going to outline below.
+
+The first thing we are going to look at is how many people from our observed education level have diabetes. This will give us an idea of how likely it is that a person has diabetes just by knowing their education level. We are going to do this by first making a table showing the breakdown and then making a barplot showing this visually
+```{r diabetes numbers breakdown}
+# Make table
+(diabetes_table <- table(filtered_data$Diabetes_binary))
+
+# Specify this for percentage format
+pct_format = scales::percent_format(accuracy = .1)
+
+# Show graph
+ggplot(filtered_data, aes(x = Diabetes_binary, fill = Diabetes_binary)) +
+  geom_bar(show.legend = FALSE) +
+  geom_text(
+    aes(
+      label = sprintf(
+        '%d (%s)',
+        ..count..,
+        pct_format(..count.. / sum(..count..))
+      )
+    ),
+    stat = 'count',
+    nudge_y = .2,
+    color = 'red',
+    size = 5,
+    vjust = -0.2
+  ) +
+  labs(
+    title = "Breakdown of People Having Diabetes",
+    x = "Do They Have Diabetes?",
+    y = "Number of People",
+  ) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+According to the [CDC](https://www.cdc.gov/diabetes/health-equity/diabetes-by-the-numbers.html#:~:text=37.3%20million%20people%20have%20diabetes,not%20know%20they%20have%20it.), roughly 11.5% of Americans have diabetes, so we would expect each education level to around this percentage as well. If there is a large deviance from this number, this would be something to make note of. 
+
+Another thing we can look at is trying to find the percentage of people in each age group who have diabetes and seeing if the age is dictating who has it. Again if age was not a factor, we should expect to see the percentages throughout the different age groups to be the same.
+```{r age and diabetes}
+(
+  filter_data_age_percent <- ddply(filtered_data, 
+                                   .(Age), 
+                                   function(x) 
+                                     with(x, data.frame(100 * round(table(Diabetes_binary) / length(Diabetes_binary), 4))))
+)
+
+filter_data_age_percent %>% 
+  filter(Diabetes_binary == "yes") %>%
+  ggplot(aes(x = Age, y = Freq, fill = Age)) +
+  geom_bar(stat = "identity",
+           show.legend = FALSE) +
+  geom_text(aes(label = Freq),
+            vjust = -0.2) +
+  labs(
+    title = "Percentage of People by Age Group who Have Diabetes",
+    x = "Age Group",
+    y = "Percentage of People with Diabetes",
+  ) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+To gain some more context on the reliability of the percentages above by age group,
+lets see the overall percent makeup for each of the age groups from the sample.
+Ideally, we'd like to see an equal proportion of observations from each of the 
+age groups.
+```{r age contingency}
+#create contingency table that dives by number of rows and multiples by 100
+#to get the percentages of each age group
+round(table(filtered_data$Age) / nrow(filtered_data) * 100, 2)
+```
+
+Typically we expect that `Age` will play a factor as one gets older, their chance of diabetes tends to increase. [The NIH](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9843502/#:~:text=Advanced%20age%20is%20a%20major%20risk%20factor%20for%20diabetes%20and%20prediabetes.&text=Therefore%2C%20the%20elderly%20has%20a,%2C%20retinal%2C%20and%20renal%20systems.) describes some of the reasons why in a better way than we can by the experiment they design with the corresponding results.
+
+A lot of people tend to say that [BMI](https://www.nhlbi.nih.gov/health/educational/lose_wt/BMI/bmicalc.htm) is a good indicator of one's health. Some people may argue that the system is faulty. Take for example someone who is deemed in fantastic health. As sports fans, I typically point to NBA superstar LeBron James. According to [his bio at the time this piece was written](https://en.wikipedia.org/wiki/LeBron_James), he was listed at 6 foot 9 inches tall with weighing in at 250 pounds. His BMI is 26.8, which is considered overweight, while someone (who might be a co-author of this piece) might be listed at 5 foot 11 inches tall with weighing in around 175 pounds with a BMI at 24.4 which is considered normal weight. LeBron James is considered one of the healthiest humans in the world, as this issue arises from BMI not taking into account possible muscle mass. But we can still examine the breakdowns of BMI (as an indicator of someone being overweight and potentially not the healthiest) and seeing if there is a correlation between BMI and getting diabetes. Note a healthy BMI is between 20 and 24.9. 
+```{r bmi and diabetes}
+# Set optimal number of bins with this formula; uses Sturges Rule
+bw <- min(ceiling(log2(length(filtered_data$BMI) + 1)), 30)
+
+# Make labels for graph
+diabetes_label <- c("Diabetes = No", "Diabetes = Yes")
+names(diabetes_label) <- c("no", "yes")
+
+# Show histogram of BMI
+filtered_data %>%
+  ggplot(aes(x = BMI, fill = Diabetes_binary)) +
+  geom_histogram(bins = bw,
+                 show.legend = FALSE) +
+  labs(
+    title = "Breakdown of People's BMIs and if They Have Diabetes",
+    x = "BMI",
+    y = "Number of People",
+  ) +
+  facet_wrap(~Diabetes_binary, 
+             labeller = labeller(Diabetes_binary = diabetes_label)) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+If BMI does have a perceived effect then the histogram for people who do not have diabetes and people who do have it would be different. Otherwise, if the distributions of the histogram look similar between the two then we say that it is plausible that BMI does not have predict (or really correlate) with someone having diabetes.
+
+Lets dig a little bit deeper into the density of BMI by diabetes by
+looking at some summary measures of BMI and visualizing with a boxplot.
+Here we should be looking for number of outliers and the difference in the IQR 
+for those that have diabetes compared to those who don't.
+```{r bmi boxplot}
+# Show summary of BMI
+summary(filtered_data$BMI)
+
+# Show boxplot of BMI
+filtered_data %>%
+  ggplot(aes(x = BMI, fill = Diabetes_binary)) +
+  geom_boxplot() +
+  #add appropriate labels
+  labs(
+    title = "Breakdown of People's BMIs and if They Have Diabetes",
+    x = "BMI",
+  ) +
+  #set limit due to outliers
+  xlim(15,65) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_blank()) +
+  #create vertical box plots
+  coord_flip()
+```
+
+While BMI is regarded as a good indicator of one's health, we can also look at some
+summary measures for the other numeric variables in `Mental Health` and `Physical Health`.
+
+We can compare this to those who have diabetes verse those who don't. We'd 
+especially want to look at how the means compare across the two groups, as well
+as if there seems to be interesting findings regarding those without diabetes 
+generally having lower physical health metrics.
+
+First lets look at those who do not have diabetes.
+```{r summary no diab}
+#create summary measures for those without diabetes for mental and physical health
+summary(filtered_data[filtered_data$Diabetes_binary == 'no', c('MentHlth', 'PhysHlth')])
+```
+Those who do have diabetes.
+```{r summary diab}
+#create summary measures for those with diabetes for mental and physical health
+summary(filtered_data[filtered_data$Diabetes_binary == 'yes', c('MentHlth', 'PhysHlth')])
+```
+
+We can also look at a measure of spread by analyzing the standard deviation of
+the numeric variables across those who do verse don't have diabetes. Here we'd 
+be interested in looking to see if there are any significant differences in the 
+spread for these variables across each group.
+```{r sd numeric variables}
+#create data frame of sd measure for numeric variables for those who do not have
+#diabetes. Apply the sd function across each column for the relevant columns
+#of data frame
+no_diab <- as.data.frame(apply(filtered_data[filtered_data$Diabetes_binary == 'no', c('BMI', 'MentHlth', 'PhysHlth')],
+                    MARGIN = 2,
+                    FUN = sd),
+              optional = TRUE)
+#create data frame of sd measure for numeric variables for those who do have
+#diabetes. Apply the sd function across each column for the relevant columns
+#of data frame
+yes_diab <- as.data.frame(apply(filtered_data[filtered_data$Diabetes_binary == 'yes', c('BMI', 'MentHlth', 'PhysHlth')],
+                    MARGIN = 2,
+                    FUN = sd),
+              optional = TRUE)
+#bind data frames together
+sd_diab <- round(cbind(no_diab, yes_diab), 2)
+#change column names
+colnames(sd_diab) <- c('SD No Diabetes', 'SD Diabetes')
+#analyze results
+sd_diab
+```
+
+We could also look at if `Sex` has something to do with diabetes occurring. Again we could make a plot looking at the breakdown of Males and females with diabetes and see if they similarly match up.
+```{r sex with diabetes}
+# Make table
+(diabetes_sex_table <- table(filtered_data$Diabetes_binary, filtered_data$Sex))
+
+# Specify this for percentage format; specify facet wrap labels
+pct_format = scales::percent_format(accuracy = .1)
+diabetes_sex_label <- c("Sex = Female", "Sex = Male")
+names(diabetes_sex_label) <- c("female", "male")
+
+# Show graph
+filtered_data %>%
+  ggplot(aes(x = Diabetes_binary, fill = Diabetes_binary, by = 1)) +
+  geom_bar(show.legend = FALSE) +
+  labs(
+    title = "Breakdown of People Having Diabetes",
+    x = "Do They Have Diabetes?",
+    y = "Number of People",
+  ) +
+  geom_text(
+    aes(
+      label = sprintf(
+        '%d (%s)',
+        ..count..,
+        scales::percent(after_stat(prop), accuracy = 1)
+      )
+    ),
+    stat = 'prop',
+    nudge_y = .2,
+    color = 'red',
+    size = 5,
+    vjust = -0.2
+  ) +
+  facet_wrap(~Sex,
+             labeller = labeller(Sex = diabetes_sex_label)) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+Again here we are trying to find any kind of significant difference with the percentage of each `Sex` that has diabetes. We can also make note of the total number from each `Sex` as that will help us in gaining an understanding of which `Sex` has a majority for type of `Education`.
+
+While there are genetic predispositions for individuals, there may be some indication of a persons overall health as to 
+explain why they do or do not have diabetes. Lets see how one's `general health` compares across those who do have 
+diabetes verse those who don't. We can visualize this with a bar chart for the different groups.
+```{r general health box plot}
+#look at general health by diabetes level
+filtered_data %>%
+  ggplot(aes(x = GenHlth, fill = Diabetes_binary)) +
+  geom_bar() +
+  labs(
+    title = "Breakdown of People's General Health and if They Have Diabetes",
+    x = "General Health",
+    y = "Number of People",
+  ) +
+  #create different plots for each diabetes level
+  facet_wrap(~Diabetes_binary, 
+             labeller = labeller(Diabetes_binary = diabetes_label)) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold")) +
+  #make sure x axis elements are not overlapping
+  scale_x_discrete(guide = guide_axis(n.dodge=2))
+```
+
+Here we are trying to see any differences in the number of people that make up each category across the different diabetes 
+groups. We'd be interested in seeing if those who don't have diabetes have a higher frequency of positive general
+health categories such as excellent or very good, or good. In contrast, we'd want to see if those who do have diabetes have 
+a higher frequency of individuals with poorer health. This may indicate general health conditions being a good predictor to use in classifying whether a person has or does not have diabetes.
+
+
+From the `National Library of Medicine`, there was a publishing that discussed hypertension being twice as frequent in patients with diabetes compared with those who don't. Lets see how that compares with our data, specifically the counts of `high blood pressure` across those who do verse don't have diabetes. We can take this a step further by shading each of the counts by `sex`. We can visualize this with a bar chart for the different groups.
+```{r high blood pressure box plot}
+#look at high blood pressure by sex and diabetes level
+filtered_data %>%
+  ggplot(aes(x = HighBP, fill = Sex)) +
+  geom_bar() +
+  #add new color scheme to distinguish sex verse diabetes level in previous plots
+  scale_fill_brewer(palette = "Dark2") +
+  labs(
+    title = "High Blood Pressure by Sex and Diabetes",
+    x = "High Blood Pressure",
+    y = "Number of People",
+  ) +
+  #look at plots across each diabetes level
+  facet_wrap(~Diabetes_binary, 
+             labeller = labeller(Diabetes_binary = diabetes_label)) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+Here we are trying to see any differences in the proportion of people who have high blood pressure across the diabetes category. Particular areas of interest would be seeing if those with diabetes generally have a higher number of people with high blood pressure as well. This may indicate high blood pressure being a good predictor to use in classifying whether a person has or does not have diabetes. We can also look for there being a significant difference by sex for those who have high blood pressure.
+
+
+Lastly, one might suspect those with diabetes generally are less active. Lets analyze this by creating a bar plot of `physical activity` across those with and without diabetes. We can further shade to see the proportion of each category by `sex`
+```{r Physical Activity Box Plot}
+#look at physical activity by sex and diabetes level
+filtered_data %>%
+  ggplot(aes(x = PhysActivity, fill = Sex)) +
+  geom_bar() +
+  scale_fill_brewer(palette = "Dark2") +
+  labs(
+    title = "Physically Active by Sex and Diabetes",
+    x = "Physically Active",
+    y = "Number of People",
+  ) +
+  #look at plots across each diabetes level
+  facet_wrap(~Diabetes_binary, 
+             labeller = labeller(Diabetes_binary = diabetes_label)) +
+  theme_bw() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+If there are significant differences in the proportion of people who are physically active without diabetes verse those who have diabetes, there may be a correlation between being physically active and having diabetes. More testing would need to be done, but this can provide some evidence for the inital suspicion.
+
+**Include any plots below that might be interesting**
+
+# Modeling
+
+Now split the data set into a training and testing set. Use $p = 0.7$ as told in the directions. The training data will be used to help make the models and the testing data will help us determine our "best" model.
+```{r split data}
+set.seed(999)
+index <- createDataPartition(filtered_data$Diabetes_binary, p = 0.7, list = FALSE)
+train <- filtered_data[index, ]
+test <- filtered_data[-index, ]
+```
+
+Now that we have split our data into a testing and training set, we can start with examining different models to best predict on whether someone with certain characteristics is likely to get diabetes.
+
+## Log Loss
+
+Log loss is also known as logarithmic loss or cross-entropy loss. This is used as a common evaluation metric for classification models in which the response variable follows a binomial distribution (or binary). It measures the performance of a model by measuring the difference between predicted probabilities and the actual values. We tend to use log loss because it provides a continuous measure of our model’s performance, which in return makes it very suitable for optimization algorithms. We also like log loss because it penalizes "confident" (meaning predictions that are heavily in one direction -- i.e. saying the prediction is 0.1 is very close to 0) **and** incorrect predictions more heavily, which incentivizes more calibrated or correlated probability estimates. Lastly, log loss is interpreted as the logarithmic measure of the likelihood of predicted probabilities aligning with the true classification. So when comparing other models log loss will do the best at giving us a model with the "most accurate" predictions unlike other methods. Therefore, we will use log loss as lower values indicate better models (and thus, better predictions).
+
+## Logistic Regression
+
+Logistic regression is very similar to linear regression but instead the response variable is binary and estimates the probability of an event occurring. Since the result of this type of model is a probability, the response variable is bounded between 0 and 1. In our case, we are looking at the response variable being the `Diabetes_binary` which is either 0 or 1, which meets this condition. We are also trying to model the probability that someone with certain characteristics gets diabetes (which is the event we are measuring). One last note for logistic regression is that a logit transformation is applied on the odds, as the probability of success divided by the probability of failure. This is known as the log odds where we are using the formula $\ln(\frac{p_i}{1-p_i}) = \beta_0 + \beta_1*X_1 + ... + \beta_n * X_n$ with $n$ being the number of predictors.
+
+We are going to use this type of prediction below by supplying 3 different candidate models that use logistic regression and then choose the best 1 from the 3 that will be used in model evaluation later in this report.
+
+## LASSO Logistic Regression
+
+`LASSO logistic regression` is an extension of logistic regression, but instead of minimizing a particular loss function, there is a penalty term added to the minimization that shrinks certain coefficient estimates to zero. It can be shown that shrinking coefficient estimates towards zero increases their bias, but significantly reduces their variance, which can be an advantage over traditional logistic regression. A method such as this, particularly with LASSO, also has the benefit of doing feature selection, by exactly setting some coefficient estimates to zero. For `LASSO logistic regression`, the penalty term that is added is lambda * the sum of the absolute value of all the beta coefficients. `Lambda` here is a tuning parameter that serves to control the relative impact of the loss function and penalization on the coefficient estimates. As lambda increases, the penalty term dominates the minimization criterion, and the resulting estimates approach zero. When lambda is zero, we get exactly the loss function being minimized. Choosing the optimal lambda value has to do with the bias-variance trade off. Lambda effectively controls the model complexity, where small lambda values are closer to the loss function being minimized, which has lower bias but higher variance. Higher values of lambda on the other hand lead to a less flexible model, which has higher bias but lower variance. The optimal lambda value is typically selected through cross-validation by minimizing the test error, which we will do below.
+
+```{r}
+#set up train control parameter,using 5-fold cross-validation
+trC <- trainControl(method = 'cv', number = 5)
+#create a grid of the lambda values we want tuned
+lasso_grid <- 10^seq(-3, 7, length = 100)
+#set seed for reproducibility
+set.seed(10)
+#train the model using glmnet  on the training data set
+lasso_fit <- train(Diabetes_binary ~ .,
+                 data = train,
+                 method = 'glmnet', 
+                 #center and scale predictors
+                 preProcess = c('center', 'scale'),
+                 #select log loss as metric to use for selecting optimal model
+                 metric = 'logLoss',
+                 #set alpha to 1 for lasso, and lambda equal to grid object
+                 tuneGrid = expand.grid(alpha = 1, lambda = lasso_grid),
+                 #perform 5 fold cv
+                 trControl = trC)
+#use predict function with final model and best tune to get coefficients
+#of best model
+predict(lasso_fit$finalModel, s = lasso_fit$bestTune$lambda, type="coef")
+```
+
+## Classification Tree
+
+A `classification tree` partitions the feature space into a set of regions, and then fits a simple model in each region. Classification trees are conceptually easy to understand and are useful if the goal of the statistical model is interpretation. The model first splits the space into two regions, and models the response typically by the majority classification in each region. The variable and split-point are chosen to achieve the best fit and then one or both of these regions are split into two more regions, and this process is continued until a stopping criterion is applied. The model is represented by a `binary tree` for the splits, which is highly interpretable. The feature space partition is fully described by a single tree. The binary tree starts with the `root node`, or the first split, and each split creates a new `branch`. Further split points are called `internal nodes`, and the terminal nodes where classification is done, are called the `leaves`. When interpreting a classification tree, interests often include the class prediction corresponding to a particular leaf and the class proportions among the training observations that fall into that leaf region. To create a classification tree, the predictor to split on, the split point, and the depth of the tree all need to be determined. For selecting the predictor to split on and the split point, often a measure of node impurity is used to do this, as an ideal node would be one where all observations are from the same class. Computationally, this is done by searching every distinct value of every predictor to find the predictor and split point that partitions the data into two groups such that the class that maximizes the proportion of training observations from that class is maximized. To find the optimal depth of the tree, two methods such as `early stopping` or `pruning` are used. Early stopping restricts tree growth explicitly using a pre-set criterion, while pruning grows a very large, complex tree, and is pruned back to obtain a sub-tree the collapses some of the internal nodes. The pruning is done by tuning a parameter that contorls a trade-off between the subtree's complexity and its fit to the training data.
+
+Here we will now fit a classification tree and find the best tree by tuning the `cp` parameter.
+```{r}
+#create data frame of tuning parameter
+class_tree_grid <- expand.grid(cp = seq(from = 0.001, to = 0.1, by = .001))
+#set seed for reproducibility
+set.seed(10)
+#train the model using rpart  on the training data set
+class.tree.fit <- train(Diabetes_binary ~ .,
+                 data = train,
+                 method = 'rpart',
+                 #center and scale predictors
+                 preProcess = c('center', 'scale'),
+                 #select log loss as metric to use for selecting optimal model
+                 metric = 'logLoss',
+                 tuneGrid = class_tree_grid,
+                 trControl = trC)
+#find best tuning hyperparameter
+class.tree.fit$bestTune
+```
+
+
+## Random Forest
+
+## Model that Eric Chooses -- change title to name of model -- **Maybe either LDA, QDA, or Naive Bayes**
+
+## Support Vector Classifier
+
+A `support vector classifier` is equivalent to a `support vector machine` using a polynomial kernel of degree equal to 1 and is an extension of the `maximal margin classifier`. A maximal margin classifier aims to fit a `separating hyperplane` to the data that perfectly separates the two classes, where the two classes are coded as -1 and 1. Since the separating hyperplane perfectly separates the two classes, the response multiplied by the output of the separating hyperplane evaluated at the predictors, is greater than zero. For new observations, the prediction is the sign of the output, or classified based on which side of the hyperplane it is located. One way to find this separating hyperplane is by minimizing the distance of misclassified points to the decision boundary. If the classes are perfectly separable, than there are infinitely many separating hyperplanes. The best separating hyperplane is one that maximizes the `margin` around the separating plane, where the margin is the minimal distance from the observations to the hyperplane. Naturally, if the two classes are not linearly separable, there is not a separating hyperplane that entirely separates the groups, that is, the maximal margin classifier cannot be computed. This is where the support vector classifier comes in, which generalizes the ideas of the maximal margin classifier to develop a classification rule that almost separates the classes. The support vector classifier allows a few points to fall on the wrong side of the margin or separating hyperplane. Often, the support vector classifier is still used even when the maximal margin classifier can be computed, because the maximal margin hyperplane is highly variable. The support vector classifier gives each data point a `slack variable`, that allows individual data points to be on the wrong side of the margin or the separating hyperplane. The support vector classifier then attempts to maximize the margin such that the sum of the slack variables is less than a `pre-specified constant`. This pre-specified constant is the constraint that can be tuned to find the optimal or best model. By solving the optimization problem, it can be shown that the classifier is only affected by the observations that lie on the margin or that violates the margin.
+
+Here we will now fit a support vector classification and find the best tree by tuning the `cost` parameter. For the ease of computation, the cost parameter will be tuned on a portion of the data. The optimal cost value will then be used in a separate `svm` function call on the whole training data.
+```{r}
+#create a random sample from the training data set to tune the cost parameter
+set.seed(999)
+index <- createDataPartition(train$Diabetes_binary, p = 0.1, list = FALSE)
+train2 <- train[index, ]
+#create data frame of tuning parameter
+class_svc_grid <- expand.grid(cost = exp(seq(-5, 3, len = 15)))
+#train the model using svmLinear2  on the training data set
+class.svc.fit <- train(Diabetes_binary ~ BMI + PhysHlth,
+                 data = train2,
+                 method = 'svmLinear2',
+                 tuneGrid = class_svc_grid,
+                 trControl = trC)
+#find best tuning hyperparameter
+class.svc.fit$bestTune
+#train the support vector classifier on the entire training data set, using the 
+#optimal cost value found with train
+class.svm.fit <- svm(Diabetes_binary ~ BMI + PhysHlth,
+                     data = train,
+                     type = 'C-classification',
+                     kernel = 'linear',
+                     cost = class.svc.fit$bestTune$cost,
+                     probability = TRUE)
+```
+
+
+# Final Model Selection
+
+We now have our six best models that we want to compare on the test set to declare the overall best model. To do this, we will create a function that calculates the log loss, our metric of interest, and evaluate this on the real response values and predictions for each of the models.
+```{r}
+#create function to calculate log loss
+LogLoss <- function(actual, predicted) {
+  #change yes no of response, to binary 1 0
+  actual <- if_else(actual == 'yes', 1, 0)
+  #formula for log loss
+  result <- -1/length(actual)*(sum((actual*log(predicted)+(1-actual)*log(1-predicted))))
+  return(result)}
+#find predictions using the lasso fit and test set
+pred_lasso <- predict(lasso_fit, 
+               newdata = test[-1],
+               type = 'prob')
+#find predictions using the classification tree fit and test set
+pred_ctree <- predict(class.tree.fit, 
+               newdata = test[-1],
+               type = 'prob')
+#find predictions using the support vector classifier and test set
+pred_svc <- predict(class.svm.fit, 
+               newdata = test[, c('BMI', 'PhysHlth')],
+               probability = TRUE)
+#calculate log loss of lasso fit
+lasso_error <- LogLoss(test$Diabetes_binary, pred_lasso[2])
+#calculate log loss of classification tree
+ctree_error <- LogLoss(test$Diabetes_binary, pred_ctree[2])
+#calculate log loss of support vector classifier
+svc_error <- LogLoss(test$Diabetes_binary, 
+                     attributes(pred_svc)$probabilities[,2])
+#create data frame to compare the results
+data.frame('log loss' = c(lasso_error, ctree_error, svc_error),
+           row.names = c('Lasso', 'Classification tree', 
+                         'Support Vector Classifier'))
+```
