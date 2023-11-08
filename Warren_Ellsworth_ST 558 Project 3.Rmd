@@ -468,12 +468,20 @@ If there are significant differences in the proportion of people who are physica
 
 # Modeling
 
-Now split the data set into a training and testing set. Use $p = 0.7$ as told in the directions. The training data will be used to help make the models and the testing data will help us determine our "best" model.
+Now split the data set into a training and testing set. Use $p = 0.7$ as told in the directions. The training data will be used to help make the models and the testing data will help us determine our "best" model. Since we are only looking at one education level we can remove that column since all will be the same in our analysis by education level.
 ```{r split data}
+# Remove education level
+filtered_data_for_analysis <- filtered_data %>%
+  dplyr::select(-Education)
+
 set.seed(999)
-index <- createDataPartition(filtered_data$Diabetes_binary, p = 0.7, list = FALSE)
-train <- filtered_data[index, ]
-test <- filtered_data[-index, ]
+index <- createDataPartition(filtered_data_for_analysis$Diabetes_binary, p = 0.7, list = FALSE)
+train <- filtered_data_for_analysis[index, ]
+test <- filtered_data_for_analysis[-index, ]
+
+# Make Diabetes binary a number
+train <- train %>% 
+  mutate(Diabetes_binary = as.numeric(Diabetes_binary) - 1)
 ```
 
 Now that we have split our data into a testing and training set, we can start with examining different models to best predict on whether someone with certain characteristics is likely to get diabetes.
@@ -486,7 +494,111 @@ Log loss is also known as logarithmic loss or cross-entropy loss. This is used a
 
 Logistic regression is very similar to linear regression but instead the response variable is binary and estimates the probability of an event occurring. Since the result of this type of model is a probability, the response variable is bounded between 0 and 1. In our case, we are looking at the response variable being the `Diabetes_binary` which is either 0 or 1, which meets this condition. We are also trying to model the probability that someone with certain characteristics gets diabetes (which is the event we are measuring). One last note for logistic regression is that a logit transformation is applied on the odds, as the probability of success divided by the probability of failure. This is known as the log odds where we are using the formula $\ln(\frac{p_i}{1-p_i}) = \beta_0 + \beta_1*X_1 + ... + \beta_n * X_n$ with $n$ being the number of predictors.
 
-We are going to use this type of prediction below by supplying 3 different candidate models that use logistic regression and then choose the best 1 from the 3 that will be used in model evaluation later in this report.
+We are going to use this type of prediction below by supplying 3 different candidate models that use logistic regression and then choose the best 1 from the 3 that will be used in model evaluation later in this report. 
+
+```{r logistic regression variable selection, eval=FALSE, echo=FALSE}
+# Set seed for reproducibility
+set.seed(999)
+
+# Train the first model we create
+log_model_varImp <- train(
+  Diabetes_binary ~ ., 
+  data = train, 
+  method = "glm", 
+  family = "binomial",
+  metric = "logLoss",
+  preProcess = c("scale", "center"), 
+  trControl = trainControl(method = "cv", number = 5)
+)
+
+# Get important variables
+varImp(log_model_varImp)
+```
+
+After looking for the most important variables (the code and results are hidden but we then choose the best variables for our models). The first model that we have determined is only first order with no interactions. We are going to only look at some of the top most important variables. These will be listed in our first model.
+
+First we are going to make a model that is totally linear with no interactions shown. 
+```{r logistic regression 1}
+# Set seed for reproducibility
+set.seed(999)
+
+# Train the first model we create
+log_model_1 <- train(
+  Diabetes_binary ~ BMI + GenHlth + HighBP + HighChol + Age + HvyAlcoholConsump + CholCheck + Sex, 
+  data = train, 
+  method = "glm", 
+  family = "binomial",
+  metric = "logLoss",
+  preProcess = c("scale", "center"), 
+  trControl = trainControl(method = "cv", number = 5)
+)
+
+#create function to calculate log loss
+LogLoss <- function(actual, predicted) {
+  #change yes no of response, to binary 1 0
+  actual <- if_else(actual == 'yes', 1, 0)
+  #formula for log loss
+  result <- -1/length(actual)*(sum((actual*log(predicted)+(1-actual)*log(1-predicted))))
+  return(result)
+}
+
+# Make predictions
+pred_log_1 <- predict(log_model_1, test)
+
+# Get log loss
+(log_model_1_error <- LogLoss(test$Diabetes_binary, pred_log_1))
+```
+
+We get our log loss here on the linear model with no interaction being `r log_model_1_error`. We are now going to see if we should include some interactions. For example, is there an interaction in age and sex? What about high blood pressure and cholestrol? We are going to include some interaction terms with things that are appropriate
+```{r log model 2}
+# Set seed for reproducibility
+set.seed(999)
+
+# Train the first model we create
+log_model_2 <- train(
+  Diabetes_binary ~ BMI + GenHlth + HighBP*HighChol + Age*Sex + HvyAlcoholConsump + CholCheck, 
+  data = train, 
+  method = "glm", 
+  family = "binomial",
+  metric = "logLoss",
+  preProcess = c("scale", "center"), 
+  trControl = trainControl(method = "cv", number = 5)
+)
+
+# Make predictions
+pred_log_2 <- predict(log_model_2, test)
+
+# Get log loss
+(log_model_2_error <- LogLoss(test$Diabetes_binary, pred_log_2[2]))
+```
+
+We get our log loss here on the linear model with interaction being `r log_model_2_error`. We are now going to see if we this data is better represented as a quadratic model instead by including the second order terms for the predictors. These will be included for numeric variables.
+```{r logistic regression model 3}
+# Set seed for reproducibility
+set.seed(999)
+
+# Train the first model we create
+log_model_3 <- train(
+  Diabetes_binary ~ I(BMI^2) + GenHlth + HighBP + HighChol + Age + HvyAlcoholConsump + CholCheck + Sex, 
+  data = train, 
+  method = "glm", 
+  family = "binomial",
+  metric = "logLoss",
+  preProcess = c("scale", "center"), 
+  trControl = trainControl(method = "cv", number = 5)
+)
+
+# Make predictions
+pred_log_3 <- predict(log_model_3, test)
+
+# Get log loss
+(log_model_3_error <- LogLoss(test$Diabetes_binary, pred_log_3))
+```
+
+We get our log loss here on the linear model with interaction being `r log_model_3_error`. Now what we do is select the model with the lowest error rate. We will use this to compare to other models later.
+```{r select best logistic regression model}
+best_log_model_error <- min(log_model_1_error, log_model_2_error, log_model_3_error)
+```
 
 ## LASSO Logistic Regression
 
@@ -580,13 +692,6 @@ class.svm.fit <- svm(Diabetes_binary ~ BMI + PhysHlth,
 
 We now have our six best models that we want to compare on the test set to declare the overall best model. To do this, we will create a function that calculates the log loss, our metric of interest, and evaluate this on the real response values and predictions for each of the models.
 ```{r}
-#create function to calculate log loss
-LogLoss <- function(actual, predicted) {
-  #change yes no of response, to binary 1 0
-  actual <- if_else(actual == 'yes', 1, 0)
-  #formula for log loss
-  result <- -1/length(actual)*(sum((actual*log(predicted)+(1-actual)*log(1-predicted))))
-  return(result)}
 #find predictions using the lasso fit and test set
 pred_lasso <- predict(lasso_fit, 
                newdata = test[-1],
