@@ -652,8 +652,9 @@ class.tree.fit <- train(Diabetes_binary ~ .,
 class.tree.fit$bestTune
 ```
 
-
 ## Random Forest
+
+
 
 ## Model that Eric Chooses -- change title to name of model -- **Maybe either LDA, QDA, or Naive Bayes**
 
