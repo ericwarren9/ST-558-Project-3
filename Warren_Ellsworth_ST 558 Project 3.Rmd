@@ -691,22 +691,38 @@ class.tree.fit$bestTune
 
 Random Forest combines the output of multiple decision trees to reach a single result that can be used on both regression and classification problems. In this modeling technique, we can say that the model builds a forest, which is an ensemble of decision trees, which are usually trained with bagging. Bagging is a method that combines different learning models which in return will increase the efficiency of the overall result.The final value that we get from the model is the average of all the predictions or estimates created by each individual tree. Unlike classification trees, random forest uses multiple trees which prevents error that may arise due to overfitting our model. Thus, we tend to get more accurate predictions than we do from a classification tree. Lastly, random forest tends to be a better learning model as it uses these multiple trees and not depend as much on the training data. So this is why we prefer to use random forest over classification trees.
 
-Here we are going to make our own random forest model with the diabetes data we are looking at.
+Here we are going to make our own random forest model with the diabetes data we are looking at. Since the model is running really slow with our remaining multilevel factors, we are going to make dummy variables for them and hope this runs quicker
 ```{r random forest model}
+# Make dummy variables for training
+training_dummies <- dummyVars(Diabetes_binary ~ GenHlth + Age + Income, data = train)
+diabetes_train_dummies <- as_tibble(predict(training_dummies, newdata = train))
+training_with_dummies <- cbind(train, diabetes_train_dummies) %>%
+  dplyr::select(-c(GenHlth, 
+                   Age, 
+                   Income))
+
+# Make dummy variables for testing
+testing_dummies <- dummyVars(Diabetes_binary ~ GenHlth + Age + Income, data = test)
+diabetes_test_dummies <- as_tibble(predict(testing_dummies, newdata = test))
+testing_with_dummies <- cbind(test, diabetes_test_dummies) %>%
+  dplyr::select(-c(GenHlth, 
+                   Age, 
+                   Income))
+
 # Make the model
 set.seed(999)
 rf_fit <- train(
   Diabetes_binary ~ ., 
-  data = train,           
+  data = training_with_dummies,           
   method = "rf",
   metric = 'logLoss',
   preProcess = c("center", "scale"),
-  trControl = trainControl(method = "repeatedcv", number = 5, repeats = 3),
+  trControl = trainControl(method = "cv", number = 5),
   tuneGrid = data.frame(mtry = 1:15)
 )
 
 # Get predictions 
-rf_predict <- predict(rf_fit, newdata = test)
+rf_predict <- predict(rf_fit, newdata = testing_with_dummies)
 ```
 
 ## Model that Eric Chooses -- change title to name of model -- **Maybe either LDA, QDA, or Naive Bayes**
