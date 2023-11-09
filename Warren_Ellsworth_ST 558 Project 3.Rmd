@@ -85,8 +85,7 @@ diabetes <- diabetes %>%
       labels = c(
         "female", 
         "male"
-      ),   
-      ordered = TRUE
+      )
     ),
     GenHlth = factor(
       GenHlth,
@@ -97,8 +96,7 @@ diabetes <- diabetes %>%
         "good",
         "fair",
         "poor"
-      ),
-      ordered = TRUE
+      )
     ),
     Age = factor(
       Age,
@@ -117,8 +115,7 @@ diabetes <- diabetes %>%
         "70-74",
         "75-79",
         "80+"
-      ),
-      ordered = TRUE
+      )
     ),
     Education = factor(
       Education,
@@ -129,8 +126,7 @@ diabetes <- diabetes %>%
         "Grade 12 or GED -- High school graduate",
         "College 1 year to 3 years -- Some college or technical school",
         "College 4 years or more -- College graduate"
-      ),
-      ordered = TRUE
+      )
     ),
     Income = factor(
       Income,
@@ -177,8 +173,7 @@ diabetes[, col_names$name] <- lapply(
     factor(
       x,
       levels = c(0, 1),
-      labels = c("no", "yes"),
-      ordered = TRUE
+      labels = c("no", "yes")
     )
 )
 ```
@@ -489,16 +484,39 @@ If there are significant differences in the proportion of people who are physica
 
 # Modeling
 
-Now split the data set into a training and testing set. Use $p = 0.7$ as told in the directions. The training data will be used to help make the models and the testing data will help us determine our "best" model. Since we are only looking at one education level we can remove that column since all will be the same in our analysis by education level.
+Now split the data set into a training and testing set. Use $p = 0.7$ as told in the directions. The training data will be used to help make the models and the testing data will help us determine our "best" model. Since we are only looking at one education level we can remove that column since all will be the same in our analysis by education level. Lastly, we need to make dummy variables since we have many factors that could take a very long time to run.
 ```{r split data}
 # Remove education level
 filtered_data_for_analysis <- filtered_data %>%
   dplyr::select(-Education)
 
+# Make dummy variables
+dummies <- dummyVars(Diabetes_binary ~ . - BMI - GenHlth - MentHlth - PhysHlth - Age - Income, data = filtered_data_for_analysis)
+diabetes_dummies <- as_tibble(predict(dummies, newdata = filtered_data_for_analysis))
+
+# Make combined data frame with dummies and kept columns
+filtered_data_with_dummies <- cbind(filtered_data_for_analysis, diabetes_dummies) %>%
+  dplyr::select(-c(contains(".no"),
+                   contains(".female"))) %>%
+  dplyr::select(Diabetes_binary,
+                BMI,
+                GenHlth,
+                MentHlth,
+                PhysHlth,
+                Age,
+                Income,
+                contains(".yes"),
+                contains(".male"))
+
+# Rename columns
+names(filtered_data_with_dummies) <- gsub(pattern = ".yes*", replacement = "", x = names(filtered_data_with_dummies))
+names(filtered_data_with_dummies) <- gsub(pattern = ".male*", replacement = "", x = names(filtered_data_with_dummies))
+
+# Create test and train data
 set.seed(999)
-index <- createDataPartition(filtered_data_for_analysis$Diabetes_binary, p = 0.7, list = FALSE)
-train <- filtered_data_for_analysis[index, ]
-test <- filtered_data_for_analysis[-index, ]
+index <- createDataPartition(filtered_data_with_dummies$Diabetes_binary, p = 0.7, list = FALSE)
+train <- filtered_data_with_dummies[index, ]
+test <- filtered_data_with_dummies[-index, ]
 ```
 
 Now that we have split our data into a testing and training set, we can start with examining different models to best predict on whether someone with certain characteristics is likely to get diabetes.
@@ -541,7 +559,7 @@ set.seed(999)
 
 # Train the first model we create
 log_model_1 <- train(
-  as.numeric(Diabetes_binary) - 1 ~ BMI + GenHlth + HighBP + HighChol + Age + HvyAlcoholConsump + CholCheck + Sex, 
+  as.numeric(Diabetes_binary) - 1 ~ BMI + GenHlth + HighBP + HighChol + Age + HvyAlcoholConsump + CholCheck + Sex + HeartDiseaseorAttack, 
   data = train, 
   method = "glm", 
   family = "binomial",
@@ -566,7 +584,7 @@ pred_log_1 <- predict(log_model_1, test)
 (log_model_1_error <- LogLoss(test$Diabetes_binary, pred_log_1))
 ```
 
-We get our log loss here on the linear model with no interaction being `r log_model_1_error`. We are now going to see if we should include some interactions. For example, is there an interaction in age and sex? What about high blood pressure and cholestrol? We are going to include some interaction terms with things that are appropriate
+We get our log loss here on the linear model with no interaction being `r log_model_1_error`. We are now going to see if we should include some interactions. For example, is there an interaction in age and sex? What about high blood pressure and cholesterol? We are going to include some interaction terms with things that are appropriate
 ```{r log model 2}
 # Set seed for reproducibility
 set.seed(999)
@@ -614,7 +632,7 @@ pred_log_3 <- predict(log_model_3, test)
 
 We get our log loss here on the linear model with interaction being `r log_model_3_error`. Now what we do is select the model with the lowest error rate. We will use this to compare to other models later.
 ```{r select best logistic regression model}
-best_log_model_error <- min(log_model_1_error, log_model_2_error, log_model_3_error)
+(best_log_model_error <- min(log_model_1_error, log_model_2_error, log_model_3_error))
 ```
 
 ## LASSO Logistic Regression
@@ -647,7 +665,7 @@ predict(lasso_fit$finalModel, s = lasso_fit$bestTune$lambda, type="coef")
 
 ## Classification Tree
 
-A `classification tree` partitions the feature space into a set of regions, and then fits a simple model in each region. Classification trees are conceptually easy to understand and are useful if the goal of the statistical model is interpretation. The model first splits the space into two regions, and models the response typically by the majority classification in each region. The variable and split-point are chosen to achieve the best fit and then one or both of these regions are split into two more regions, and this process is continued until a stopping criterion is applied. The model is represented by a `binary tree` for the splits, which is highly interpretable. The feature space partition is fully described by a single tree. The binary tree starts with the `root node`, or the first split, and each split creates a new `branch`. Further split points are called `internal nodes`, and the terminal nodes where classification is done, are called the `leaves`. When interpreting a classification tree, interests often include the class prediction corresponding to a particular leaf and the class proportions among the training observations that fall into that leaf region. To create a classification tree, the predictor to split on, the split point, and the depth of the tree all need to be determined. For selecting the predictor to split on and the split point, often a measure of node impurity is used to do this, as an ideal node would be one where all observations are from the same class. Computationally, this is done by searching every distinct value of every predictor to find the predictor and split point that partitions the data into two groups such that the class that maximizes the proportion of training observations from that class is maximized. To find the optimal depth of the tree, two methods such as `early stopping` or `pruning` are used. Early stopping restricts tree growth explicitly using a pre-set criterion, while pruning grows a very large, complex tree, and is pruned back to obtain a sub-tree the collapses some of the internal nodes. The pruning is done by tuning a parameter that contorls a trade-off between the subtree's complexity and its fit to the training data.
+A `classification tree` partitions the feature space into a set of regions, and then fits a simple model in each region. Classification trees are conceptually easy to understand and are useful if the goal of the statistical model is interpretation. The model first splits the space into two regions, and models the response typically by the majority classification in each region. The variable and split-point are chosen to achieve the best fit and then one or both of these regions are split into two more regions, and this process is continued until a stopping criterion is applied. The model is represented by a `binary tree` for the splits, which is highly interpretable. The feature space partition is fully described by a single tree. The binary tree starts with the `root node`, or the first split, and each split creates a new `branch`. Further split points are called `internal nodes`, and the terminal nodes where classification is done, are called the `leaves`. When interpreting a classification tree, interests often include the class prediction corresponding to a particular leaf and the class proportions among the training observations that fall into that leaf region. To create a classification tree, the predictor to split on, the split point, and the depth of the tree all need to be determined. For selecting the predictor to split on and the split point, often a measure of node impurity is used to do this, as an ideal node would be one where all observations are from the same class. Computationally, this is done by searching every distinct value of every predictor to find the predictor and split point that partitions the data into two groups such that the class that maximizes the proportion of training observations from that class is maximized. To find the optimal depth of the tree, two methods such as `early stopping` or `pruning` are used. Early stopping restricts tree growth explicitly using a pre-set criterion, while pruning grows a very large, complex tree, and is pruned back to obtain a sub-tree the collapses some of the internal nodes. The pruning is done by tuning a parameter that controls a trade-off between the subtree's complexity and its fit to the training data.
 
 Here we will now fit a classification tree and find the best tree by tuning the `cp` parameter.
 ```{r}
@@ -671,7 +689,25 @@ class.tree.fit$bestTune
 
 ## Random Forest
 
+Random Forest combines the output of multiple decision trees to reach a single result that can be used on both regression and classification problems. In this modeling technique, we can say that the model builds a forest, which is an ensemble of decision trees, which are usually trained with bagging. Bagging is a method that combines different learning models which in return will increase the efficiency of the overall result.The final value that we get from the model is the average of all the predictions or estimates created by each individual tree. Unlike classification trees, random forest uses multiple trees which prevents error that may arise due to overfitting our model. Thus, we tend to get more accurate predictions than we do from a classification tree. Lastly, random forest tends to be a better learning model as it uses these multiple trees and not depend as much on the training data. So this is why we prefer to use random forest over classification trees.
 
+Here we are going to make our own random forest model with the diabetes data we are looking at.
+```{r random forest model}
+# Make the model
+set.seed(999)
+rf_fit <- train(
+  Diabetes_binary ~ ., 
+  data = train,           
+  method = "rf",
+  metric = 'logLoss',
+  preProcess = c("center", "scale"),
+  trControl = trainControl(method = "repeatedcv", number = 5, repeats = 3),
+  tuneGrid = data.frame(mtry = 1:15)
+)
+
+# Get predictions 
+rf_predict <- predict(rf_fit, newdata = test)
+```
 
 ## Model that Eric Chooses -- change title to name of model -- **Maybe either LDA, QDA, or Naive Bayes**
 
@@ -730,7 +766,7 @@ ctree_error <- LogLoss(test$Diabetes_binary, pred_ctree[2])
 svc_error <- LogLoss(test$Diabetes_binary, 
                      attributes(pred_svc)$probabilities[,2])
 #create data frame to compare the results
-data.frame('log loss' = c(lasso_error, ctree_error, svc_error),
-           row.names = c('Lasso', 'Classification tree', 
+data.frame('log loss' = c(best_log_model_error, lasso_error, ctree_error, svc_error),
+           row.names = c('Logistic Regression', 'Lasso', 'Classification tree', 
                          'Support Vector Classifier'))
 ```
