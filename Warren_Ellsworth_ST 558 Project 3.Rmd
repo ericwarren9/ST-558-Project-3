@@ -693,13 +693,16 @@ Random Forest combines the output of multiple decision trees to reach a single r
 
 Here we are going to make our own random forest model with the diabetes data we are looking at. Since the model is running really slow with our remaining multilevel factors, we are going to make dummy variables for them and hope this runs quicker
 ```{r random forest model}
+library(caret)
 # Make dummy variables for training
 training_dummies <- dummyVars(Diabetes_binary ~ GenHlth + Age + Income, data = train)
 diabetes_train_dummies <- as_tibble(predict(training_dummies, newdata = train))
 training_with_dummies <- cbind(train, diabetes_train_dummies) %>%
   dplyr::select(-c(GenHlth, 
                    Age, 
-                   Income))
+                   Income)) %>%
+  as_tibble() %>%
+  janitor::clean_names()
 
 # Make dummy variables for testing
 testing_dummies <- dummyVars(Diabetes_binary ~ GenHlth + Age + Income, data = test)
@@ -707,25 +710,53 @@ diabetes_test_dummies <- as_tibble(predict(testing_dummies, newdata = test))
 testing_with_dummies <- cbind(test, diabetes_test_dummies) %>%
   dplyr::select(-c(GenHlth, 
                    Age, 
-                   Income))
+                   Income)) %>%
+  as_tibble() %>%
+  janitor::clean_names()
 
 # Make the model
 set.seed(999)
 rf_fit <- train(
-  Diabetes_binary ~ ., 
+  diabetes_binary ~ ., 
   data = training_with_dummies,           
   method = "rf",
   metric = 'logLoss',
   preProcess = c("center", "scale"),
-  trControl = trainControl(method = "cv", number = 5),
-  tuneGrid = data.frame(mtry = 1:15)
+  trControl = trainControl(method = "cv", number = 1, savePredictions = "all"),
+  tuneGrid = data.frame(mtry = 1:20)
 )
 
 # Get predictions 
 rf_predict <- predict(rf_fit, newdata = testing_with_dummies)
 ```
 
-## Model that Eric Chooses -- change title to name of model -- **Maybe either LDA, QDA, or Naive Bayes**
+## Linear Discriminant Analysis
+
+Linear Discriminant Analysis (LDA) is a technique that is used for classification as a dimension reduction technique. It is used to find a linear combination of features that best separates the classes in our data. It does this by finding a set of linear discriminant values which maximizes the ratio of between-class variance to within-class variance. Some reasons we like to use this modeling technique is because it can work well even if the number of features is larger than the number of training samples and it can handle multicollinearity (or correlation between features) in the data.
+
+We are going to try to fit a model for ourselves using this new technique of Linear Discriminant Analysis.
+```{r lda model}
+# Set seed for reproducibility
+set.seed(999)
+
+# Train the first model we create
+lda_fit <- train(
+  Diabetes_binary ~ ., 
+  data = train, 
+  method = "lda",
+  metric = "logLoss",
+  preProcess = c("scale", "center"), 
+  trControl = trainControl(method = "cv", number = 5)
+)
+
+# Make predictions
+pred_lda <- predict(lda_fit, test)
+
+pred_lda <- as.numeric(pred_lda) - 1
+
+# Get log loss
+(nb_error <- LogLoss(test$Diabetes_binary, pred_nb))
+```
 
 ## Support Vector Classifier
 
