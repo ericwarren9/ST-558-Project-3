@@ -52,7 +52,7 @@ Here we are going to read in our `diabetes` data and then combine groups 1 and 2
 )
 ```
 
-# ADD COMMENTARY HERE
+We can see that there are many numerical variables that should not be an instead are *factors*. This is something we should correct.
 
 ```{r render into md files, echo=FALSE, eval=FALSE}
 #get unique education
@@ -75,7 +75,7 @@ apply(reports, MARGIN = 1,
  				})
 ```
 
-We can see that there are many numerical variables that should not be an instead are *factors*. This is something we should correct. We can use the [helper website](https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset/) as a tool to tell us which columns should be factors, as opposed to the numeric columns. We are going to convert the corresponding variables to factors.
+We can use the [helper website](https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset/) as a tool to tell us which columns should be factors, as opposed to the numeric columns. We are going to convert the corresponding variables to factors.
 ```{r convert to factors}
 # Fix the "Sex" column to female and male, along with "GenHlth", "Age", "Education", and "Income"
 diabetes <- diabetes %>%
