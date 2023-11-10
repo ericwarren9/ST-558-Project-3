@@ -556,14 +556,14 @@ First we are going to make a model that is totally linear with no interactions s
 set.seed(999)
 # Train the first model we create
 log_model_1 <- train(
-  Diabetes_binary ~ BMI + GenHlth + HighBP + HighChol + Age + HvyAlcoholConsump 
-  + CholCheck + Sex + HeartDiseaseorAttack, 
+  Diabetes_binary ~ BMI + GenHlth + HighBP + HighChol + Age + HvyAlcoholConsump + CholCheck + Sex + HeartDiseaseorAttack, 
   data = train, 
   method = "glm", 
   family = "binomial",
   metric = "logLoss",
   preProcess = c("scale", "center"), 
   trControl = trC)
+
 #create function to calculate log loss
 LogLoss <- function(actual, predicted) {
   #change yes no of response, to binary 1 0
@@ -571,8 +571,10 @@ LogLoss <- function(actual, predicted) {
   #formula for log loss
   result <- -1/length(actual)*(sum((actual*log(predicted)+(1-actual)*log(1-predicted))))
   return(result)}
+
 # Make predictions
 pred_log_1 <- predict(log_model_1, test, type = "prob")
+
 # Get log loss
 (log_model_1_error <- LogLoss(test$Diabetes_binary, pred_log_1[2]))
 ```
@@ -590,8 +592,10 @@ log_model_2 <- train(
   metric = "logLoss",
   preProcess = c("scale", "center"), 
   trControl = trC)
+
 # Make predictions
 pred_log_2 <- predict(log_model_2, test, type = "prob")
+
 # Get log loss
 (log_model_2_error <- LogLoss(test$Diabetes_binary, pred_log_2[2]))
 ```
@@ -609,8 +613,10 @@ log_model_3 <- train(
   metric = "logLoss",
   preProcess = c("scale", "center"), 
   trControl = trC)
+
 # Make predictions
 pred_log_3 <- predict(log_model_3, test, type = "prob")
+
 # Get log loss
 (log_model_3_error <- LogLoss(test$Diabetes_binary, pred_log_3[2]))
 ```
@@ -626,6 +632,7 @@ We get our log loss here on the linear model with interaction being `r log_model
 ```{r}
 #create a grid of the lambda values we want tuned
 lasso_grid <- 10^seq(-3, 7, length = 100)
+
 #set seed for reproducibility
 set.seed(10)
 #train the model using glmnet  on the training data set
@@ -640,6 +647,7 @@ lasso_fit <- train(Diabetes_binary ~ .,
                  tuneGrid = expand.grid(alpha = 1, lambda = lasso_grid),
                  #perform 5 fold cv
                  trControl = trC)
+
 #use predict function with final model and best tune to get coefficients
 #of best model
 predict(lasso_fit$finalModel, s = lasso_fit$bestTune$lambda, type="coef")
@@ -653,6 +661,7 @@ Here we will now fit a classification tree and find the best tree by tuning the 
 ```{r}
 #create data frame of tuning parameter
 class_tree_grid <- expand.grid(cp = seq(from = 0.001, to = 0.1, by = .001))
+
 #set seed for reproducibility
 set.seed(10)
 #train the model using rpart  on the training data set
@@ -665,23 +674,27 @@ class.tree.fit <- train(Diabetes_binary ~ .,
                  metric = 'logLoss',
                  tuneGrid = class_tree_grid,
                  trControl = trC)
+
 #find best tuning hyperparameter
 class.tree.fit$bestTune
 ```
 
 ## Random Forest
 
-Random Forest combines the output of multiple decision trees to reach a single result that can be used on both regression and classification problems. In this modeling technique, we can say that the model builds a forest, which is an ensemble of decision trees, which are usually trained with bagging. Bagging is a method that combines different learning models which in return will increase the efficiency of the overall result.The final value that we get from the model is the average of all the predictions or estimates created by each individual tree. Unlike classification trees, random forest uses multiple trees which prevents error that may arise due to overfitting our model. Thus, we tend to get more accurate predictions than we do from a classification tree. Lastly, random forest tends to be a better learning model as it uses these multiple trees and not depend as much on the training data. So this is why we prefer to use random forest over classification trees.
+Random Forest combines the output of multiple decision trees to reach a single result that can be used on both regression and classification problems. In this modeling technique, we can say that the model builds a forest, which is an ensemble of decision trees, which are usually trained with bagging. Bagging is a method that combines different learning models which in return will increase the efficiency of the overall result. The final value that we get from the model is the average of all the predictions or estimates created by each individual tree. Random forest uses a subset of predictors at each split for each tree. Unlike classification trees, random forest uses multiple trees which prevents error that may arise due to overfitting our model. Thus, we tend to get more accurate predictions than we do from a classification tree. Lastly, random forest tends to be a better learning model as it uses these multiple trees and not depend as much on the training data. So this is why we prefer to use random forest over classification trees.
 
 Here we are going to make our own random forest model with the diabetes data we are looking at. To improve efficiency, we will tune the hyperparameter using a subset of the training data, and using the optimal tuning parameter, we will train the model on the entire training data.
 ```{r random forest model}
 #create a random sample from the training data set to tune the parameter
 set.seed(999)
 index <- createDataPartition(train$Diabetes_binary, p = 0.05, list = FALSE)
+
 #index training data
 train2 <- train[index, ]
+
 #create data frame of tuning parameter
 rf_grid <- expand.grid(mtry = seq(from = 2, to = 5, by = 1))
+
 # tune the model with the subsetted training set
 rf.tune <- train(Diabetes_binary ~ ., 
                 data = train2,
@@ -691,10 +704,12 @@ rf.tune <- train(Diabetes_binary ~ .,
                 preProcess = c("center", "scale"),
                 tuneGrid = rf_grid,
                 trControl = trC)
+
 #set up new train control parameter, using method = none
 trC2 <- trainControl(method = 'none', 
                     summaryFunction = mnLogLoss,
                     classProbs =  TRUE)
+
 #train the model on entire training set with optimal mtry
 rf.fit <- train(Diabetes_binary ~ ., 
                 data = train,
@@ -734,6 +749,7 @@ Here we will now fit a support vector classification and find the best tree by t
 ```{r}
 #create data frame of tuning parameter
 class_svc_grid <- expand.grid(cost = exp(seq(-5, 3, len = 15)))
+
 #train the model using svmLinear2  on the training data set
 class.svc.tune <- train(Diabetes_binary ~ BMI + PhysHlth,
                         data = train2,
@@ -761,18 +777,22 @@ We now have our six best models that we want to compare on the test set to decla
 pred_lasso <- predict(lasso_fit, 
                newdata = test,
                type = 'prob')
+
 #find predictions using the classification tree fit and test set
 pred_ctree <- predict(class.tree.fit, 
                newdata = test,
                type = 'prob')
+
 #find predictions using the random forest tree fit and test set
 pred_rf <- predict(rf.fit, 
                newdata = test,
                type = 'prob')
+
 #find predictions using the lda fit and test set
 pred_lda <- predict(lda_fit, 
                     newdata = test, 
                     type = "prob")
+
 #find predictions using the support vector classifier and test set
 pred_svc <- predict(class.svc.fit, 
                     newdata = test[, c('BMI', 'PhysHlth')],
@@ -780,14 +800,19 @@ pred_svc <- predict(class.svc.fit,
 
 #calculate log loss of lasso fit
 lasso_error <- LogLoss(test$Diabetes_binary, pred_lasso[2])
+
 #calculate log loss of classification tree
 ctree_error <- LogLoss(test$Diabetes_binary, pred_ctree[2])
+
 #calculate log loss of rf fit
 rf_error <- LogLoss(test$Diabetes_binary, pred_rf[2])
+
 #calculate log loss of lda fit
 lda_error <- LogLoss(test$Diabetes_binary, pred_lda[2])
+
 #calculate log loss of support vector classifier
 svc_error <- LogLoss(test$Diabetes_binary, pred_svc[2])
+
 
 #create data frame to compare the results
 (df_log_loss_errors <- data.frame('log_loss' = c(best_log_model_error, lasso_error, ctree_error,
