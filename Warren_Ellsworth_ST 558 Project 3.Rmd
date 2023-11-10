@@ -724,7 +724,8 @@ rf_fit <- train(
   metric = 'logLoss',
   preProcess = c("center", "scale"),
   tuneGrid = data.frame(mtry = 1:3),
-  trControl = trainControl(method = "repeatedcv", number = 1, repeats = 1, classProbs = TRUE)
+  n.tree = 100,
+  trControl = trainControl(method = "cv", number = 5, classProbs = TRUE)
 )
 
 # Get predictions 
