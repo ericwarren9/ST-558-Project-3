@@ -17,6 +17,7 @@ library(plyr)
 library(GGally)
 library(caret)
 library(MASS)
+library(e1071)
 ```
 
 # Introduction
@@ -722,7 +723,7 @@ rf_fit <- train(
   method = "rf",
   metric = 'logLoss',
   preProcess = c("center", "scale"),
-  trControl = trainControl(method = "cv", number = 1),
+  trControl = trainControl(method = "cv", number = 1, classProbs = TRUE),
   tuneGrid = data.frame(mtry = 1:3)
 )
 
