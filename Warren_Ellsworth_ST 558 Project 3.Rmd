@@ -820,6 +820,12 @@ svc_error <- LogLoss(test$Diabetes_binary,
   data.frame('log_loss' = c(best_log_model_error, lasso_error, ctree_error, lda_error, svc_error), 
              row.names = c('Logistic Regression', 'Lasso', 'Classification tree', 'Linear Discriminant Analysis', 'Support Vector Classifier'))
 )
+
+# Use this one once the random forest gets fixed and delete the previous lines of code to get the errors
+# (df_log_loss_errors <- 
+#   data.frame('log_loss' = c(best_log_model_error, lasso_error, ctree_error, rf_error, lda_error, svc_error), 
+#              row.names = c('Logistic Regression', 'Lasso', 'Classification tree', 'Random Forest', 'Linear Discriminant Analysis', 'Support Vector Classifier'))
+# )
 ```
 
 As we can see here the best model for our data in this situation is the `r lapply(df_log_loss_errors, function(x) sort(head(row.names(df_log_loss_errors)[order(x)], 1)))[[1]]` model.
