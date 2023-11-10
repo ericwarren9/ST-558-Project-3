@@ -27,7 +27,7 @@ The objective of this program is to create predictive models and automate R mark
 The data set has 21 feature variables and one response, `Diabetes_binary`, that has 2 classes. 0 indicates no diabetes, while a 1 indicates pre-diabetes or having diabetes. While there are numerous features, some of the most important that we utilized in our analysis were:  
 
 * `HighBP`: HighBP corresponds to High Blood Pressure and takes on 0 if no high blood pressure and 1 if high blood pressure  
-* `HighChol`: HighChol corresponds to High Cholesterol and takes on 0 if no high blood cholesteroland 1 if high cholesterol  
+* `HighChol`: HighChol corresponds to High Cholesterol and takes on 0 if no high blood cholesterol and 1 if high cholesterol  
 * `CholCheck`: CholCheck corresponds to Cholesterol Check and takes on 0 if no cholesterol check and 1 if cholesterol check    
 * `BMI`: BMI corresponds to Body Mass Index and takes on numeric integers  
 * `PhysActivity`: PhysActivity corresponds to physical activity in the past 30 days - not including job. It takes on 0 if no and 1 if yes  
@@ -40,7 +40,7 @@ The data set has 21 feature variables and one response, `Diabetes_binary`, that 
 
 Utilizing these features and response, we will first do basic exploratory data analysis (EDA) to produce meaningful summary statistics and plots about the our data, especially as it relates to our response. The summary statistics will comprise means, group standard deviations, and contingency tables. Since the `Education` level will change for each report and corresponding data, a discussion of what to look for in the summary statistics and plots will be provided as opposed to direct trends. 
 
-After analyzing the data through our EDA, we will create models for predicting the `Diabetes_binary` variable using the caret package. These models will include three candidate `logistic regression` models, a `LASSO logistic regression` model, a `classification tree` model, a `random forest` model, ****ERIC's MODEL*****, and a `support vector classifier` model. A brief description of each model will be given followed by fitting the model. Each model will utilize `log loss` as our metric to evaluate the models, `5 fold cross-validation` to select the best model, and will have a `tuning grid` of parameters if applicable. After selecting the best logistic regression model from the 3 candidate models, we will have six different models that we will compare. The overall winner will be selected from the 6 models utilizing the test set.
+After analyzing the data through our EDA, we will create models for predicting the `Diabetes_binary` variable using the caret package. These models will include three candidate `logistic regression` models, a `LASSO logistic regression` model, a `classification tree` model, a `random forest` model, a `linear discrminant analysis` model, and a `support vector classifier` model. A brief description of each model will be given followed by fitting the model. Each model will utilize `log loss` as our metric to evaluate the models, `5 fold cross-validation` to select the best model, and will have a `tuning grid` of parameters if applicable. After selecting the best logistic regression model from the 3 candidate models, we will have six different models that we will compare. The overall winner will be selected from the 6 models utilizing the test set.
 
 # Reading in the Data
 
@@ -533,9 +533,13 @@ Logistic regression is very similar to linear regression but instead the respons
 We are going to use this type of prediction below by supplying 3 different candidate models that use logistic regression and then choose the best 1 from the 3 that will be used in model evaluation later in this report. 
 
 ```{r logistic regression variable selection, eval=FALSE, echo=FALSE}
+#set up train control parameter,using 5-fold cross-validation
+trC <- trainControl(method = 'cv', 
+                    number = 5,
+                    summaryFunction = mnLogLoss,
+                    classProbs =  TRUE)
 # Set seed for reproducibility
 set.seed(999)
-
 # Train the first model we create
 log_model_varImp <- train(
   Diabetes_binary ~ ., 
@@ -544,9 +548,7 @@ log_model_varImp <- train(
   family = "binomial",
   metric = "logLoss",
   preProcess = c("scale", "center"), 
-  trControl = trainControl(method = "cv", number = 5)
-)
-
+  trControl = trC)
 # Get important variables
 varImp(log_model_varImp)
 ```
@@ -557,30 +559,25 @@ First we are going to make a model that is totally linear with no interactions s
 ```{r logistic regression 1}
 # Set seed for reproducibility
 set.seed(999)
-
 # Train the first model we create
 log_model_1 <- train(
-  Diabetes_binary ~ BMI + GenHlth + HighBP + HighChol + Age + HvyAlcoholConsump + CholCheck + Sex + HeartDiseaseorAttack, 
+  Diabetes_binary ~ BMI + GenHlth + HighBP + HighChol + Age + HvyAlcoholConsump 
+  + CholCheck + Sex + HeartDiseaseorAttack, 
   data = train, 
   method = "glm", 
   family = "binomial",
   metric = "logLoss",
   preProcess = c("scale", "center"), 
-  trControl = trainControl(method = "cv", number = 5)
-)
-
+  trControl = trC)
 #create function to calculate log loss
 LogLoss <- function(actual, predicted) {
   #change yes no of response, to binary 1 0
   actual <- if_else(actual == 'yes', 1, 0)
   #formula for log loss
   result <- -1/length(actual)*(sum((actual*log(predicted)+(1-actual)*log(1-predicted))))
-  return(result)
-}
-
+  return(result)}
 # Make predictions
 pred_log_1 <- predict(log_model_1, test, type = "prob")
-
 # Get log loss
 (log_model_1_error <- LogLoss(test$Diabetes_binary, pred_log_1[2]))
 ```
@@ -589,7 +586,6 @@ We get our log loss here on the linear model with no interaction being `r log_mo
 ```{r log model 2}
 # Set seed for reproducibility
 set.seed(999)
-
 # Train the first model we create
 log_model_2 <- train(
   Diabetes_binary ~ BMI + GenHlth + HighBP*HighChol + Age*Sex + HvyAlcoholConsump + CholCheck, 
@@ -598,12 +594,9 @@ log_model_2 <- train(
   family = "binomial",
   metric = "logLoss",
   preProcess = c("scale", "center"), 
-  trControl = trainControl(method = "cv", number = 5)
-)
-
+  trControl = trC)
 # Make predictions
 pred_log_2 <- predict(log_model_2, test, type = "prob")
-
 # Get log loss
 (log_model_2_error <- LogLoss(test$Diabetes_binary, pred_log_2[2]))
 ```
@@ -612,7 +605,6 @@ We get our log loss here on the linear model with interaction being `r log_model
 ```{r logistic regression model 3}
 # Set seed for reproducibility
 set.seed(999)
-
 # Train the first model we create
 log_model_3 <- train(
   Diabetes_binary ~ I(BMI^2) + GenHlth + HighBP + HighChol + Age + HvyAlcoholConsump + CholCheck + Sex, 
@@ -621,12 +613,9 @@ log_model_3 <- train(
   family = "binomial",
   metric = "logLoss",
   preProcess = c("scale", "center"), 
-  trControl = trainControl(method = "cv", number = 5)
-)
-
+  trControl = trC)
 # Make predictions
 pred_log_3 <- predict(log_model_3, test, type = "prob")
-
 # Get log loss
 (log_model_3_error <- LogLoss(test$Diabetes_binary, pred_log_3[2]))
 ```
@@ -641,8 +630,6 @@ We get our log loss here on the linear model with interaction being `r log_model
 `LASSO logistic regression` is an extension of logistic regression, but instead of minimizing a particular loss function, there is a penalty term added to the minimization that shrinks certain coefficient estimates to zero. It can be shown that shrinking coefficient estimates towards zero increases their bias, but significantly reduces their variance, which can be an advantage over traditional logistic regression. A method such as this, particularly with LASSO, also has the benefit of doing feature selection, by exactly setting some coefficient estimates to zero. For `LASSO logistic regression`, the penalty term that is added is lambda * the sum of the absolute value of all the beta coefficients. `Lambda` here is a tuning parameter that serves to control the relative impact of the loss function and penalization on the coefficient estimates. As lambda increases, the penalty term dominates the minimization criterion, and the resulting estimates approach zero. When lambda is zero, we get exactly the loss function being minimized. Choosing the optimal lambda value has to do with the bias-variance trade off. Lambda effectively controls the model complexity, where small lambda values are closer to the loss function being minimized, which has lower bias but higher variance. Higher values of lambda on the other hand lead to a less flexible model, which has higher bias but lower variance. The optimal lambda value is typically selected through cross-validation by minimizing the test error, which we will do below.
 
 ```{r}
-#set up train control parameter,using 5-fold cross-validation
-trC <- trainControl(method = 'cv', number = 5)
 #create a grid of the lambda values we want tuned
 lasso_grid <- 10^seq(-3, 7, length = 100)
 #set seed for reproducibility
@@ -694,44 +681,34 @@ Random Forest combines the output of multiple decision trees to reach a single r
 
 Here we are going to make our own random forest model with the diabetes data we are looking at. Since the model is running really slow with our remaining multilevel factors, we are going to make dummy variables for them and hope this runs quicker
 ```{r random forest model}
-# library(caret)
-# # Make dummy variables for training
-# training_dummies <- dummyVars(Diabetes_binary ~ GenHlth + Age + Income, data = train)
-# diabetes_train_dummies <- as_tibble(predict(training_dummies, newdata = train))
-# training_with_dummies <- cbind(train, diabetes_train_dummies) %>%
-#   dplyr::select(-c(GenHlth, 
-#                    Age, 
-#                    Income)) %>%
-#   as_tibble() %>%
-#   janitor::clean_names()
-# 
-# # Make dummy variables for testing
-# testing_dummies <- dummyVars(Diabetes_binary ~ GenHlth + Age + Income, data = test)
-# diabetes_test_dummies <- as_tibble(predict(testing_dummies, newdata = test))
-# testing_with_dummies <- cbind(test, diabetes_test_dummies) %>%
-#   dplyr::select(-c(GenHlth, 
-#                    Age, 
-#                    Income)) %>%
-#   as_tibble() %>%
-#   janitor::clean_names()
-
-# Make the model
+#create a random sample from the training data set to tune the parameter
 set.seed(999)
-rf_fit <- train(
-  Diabetes_binary ~ ., 
-  data = train,           
-  method = "rf",
-  metric = 'logLoss',
-  preProcess = c("center", "scale"),
-  tuneGrid = data.frame(mtry = 1:3),
-  trControl = trainControl(method = "repeatedcv", number = 1, repeats = 1, classProbs = TRUE)
-)
+index <- createDataPartition(train$Diabetes_binary, p = 0.01, list = FALSE)
+#index training data
+train2 <- train[index, ]
+#create data frame of tuning parameter
+rf_grid <- expand.grid(mtry = seq(from = 1, to = 8, by = 1))
+# tune the model with the subsetted training set
+rf.tune <- train(Diabetes_binary ~ ., 
+                data = train2,
+                method = "rf",
+                metric = 'logLoss',
+                preProcess = c("center", "scale"),
+                tuneGrid = rf_grid,
+                trControl = trC)
 
-# Get predictions 
-rf_predict <- predict(rf_fit, newdata = train, type = "prob")
-
-# Get log loss error
-(rf_error <- LogLoss(test$Diabetes_binary, rf_predict[2]))
+#set up train control parameter, using method = none
+trC2 <- trainControl(method = 'none', 
+                    summaryFunction = mnLogLoss,
+                    classProbs =  TRUE)
+#train the model on entire training set with optimal mtry
+rf.fit <- train(Diabetes_binary ~ ., 
+                data = train,
+                method = "rf",
+                metric = 'logLoss',
+                preProcess = c("center", "scale"),
+                tuneGrid = data.frame(mtry = rf.tune$bestTune),
+                trControl = trC2)
 ```
 
 ## Linear Discriminant Analysis
@@ -742,7 +719,6 @@ We are going to try to fit a model for ourselves using this new technique of Lin
 ```{r lda model}
 # Set seed for reproducibility
 set.seed(999)
-
 # Train the first model we create
 lda_fit <- train(
   Diabetes_binary ~ ., 
@@ -750,14 +726,7 @@ lda_fit <- train(
   method = "lda",
   metric = "logLoss",
   preProcess = c("scale", "center"), 
-  trControl = trainControl(method = "cv", number = 5)
-)
-
-# Make predictions
-pred_lda <- predict(lda_fit, test, type = "prob")
-
-# Get log loss
-(lda_error <- LogLoss(test$Diabetes_binary, pred_lda[2]))
+  trControl = trC)
 ```
 
 ## Support Vector Classifier
@@ -766,30 +735,26 @@ A `support vector classifier` is equivalent to a `support vector machine` using 
 
 Here we will now fit a support vector classification and find the best tree by tuning the `cost` parameter. For the ease of computation, the cost parameter will be tuned on a portion of the data. The optimal cost value will then be used in a separate `svm` function call on the whole training data.
 ```{r}
-#create a random sample from the training data set to tune the cost parameter
-set.seed(999)
-index <- createDataPartition(train$Diabetes_binary, p = 0.1, list = FALSE)
-train2 <- train[index, ]
 #create data frame of tuning parameter
 class_svc_grid <- expand.grid(cost = exp(seq(-5, 3, len = 15)))
 #train the model using svmLinear2  on the training data set
-class.svc.fit <- train(Diabetes_binary ~ BMI + PhysHlth,
-                 data = train2,
-                 method = 'svmLinear2',
-                 tuneGrid = class_svc_grid,
-                 trControl = trC)
+class.svc.tune <- train(Diabetes_binary ~ BMI + PhysHlth,
+                        data = train2,
+                        method = 'svmLinear2',
+                        metric = 'logLoss',
+                        tuneGrid = class_svc_grid,
+                        trControl = trC)
 #find best tuning hyperparameter
-class.svc.fit$bestTune
+class.svc.tune$bestTune
 #train the support vector classifier on the entire training data set, using the 
 #optimal cost value found with train
-class.svm.fit <- svm(Diabetes_binary ~ BMI + PhysHlth,
-                     data = train,
-                     type = 'C-classification',
-                     kernel = 'linear',
-                     cost = class.svc.fit$bestTune$cost,
-                     probability = TRUE)
+class.svc.fit <- train(Diabetes_binary ~ BMI + PhysHlth,
+                       data = train,
+                       method = 'svmLinear2',
+                       metric = 'logLoss',
+                       tuneGrid = data.frame(cost = class.svc.tune$bestTune),
+                       trControl = trC2)
 ```
-
 
 # Final Model Selection
 
@@ -803,22 +768,40 @@ pred_lasso <- predict(lasso_fit,
 pred_ctree <- predict(class.tree.fit, 
                newdata = test,
                type = 'prob')
+#find predictions using the random forest tree fit and test set
+pred_rf <- predict(rf.fit, 
+               newdata = test,
+               type = 'prob')
+#find predictions using the lda fit and test set
+pred_lda <- predict(lda_fit, 
+                    newdata = test, 
+                    type = "prob")
 #find predictions using the support vector classifier and test set
-pred_svc <- predict(class.svm.fit, 
-               newdata = test[, c('BMI', 'PhysHlth')],
-               probability = TRUE)
+pred_svc <- predict(class.svc.fit, 
+                    newdata = test[, c('BMI', 'PhysHlth')],
+                    type = 'prob')
+
+
 #calculate log loss of lasso fit
 lasso_error <- LogLoss(test$Diabetes_binary, pred_lasso[2])
 #calculate log loss of classification tree
 ctree_error <- LogLoss(test$Diabetes_binary, pred_ctree[2])
+#calculate log loss of rf fit
+rf_error <- LogLoss(test$Diabetes_binary, pred_rf[2])
+#calculate log loss of lda fit
+lda_error <- LogLoss(test$Diabetes_binary, pred_lda[2])
 #calculate log loss of support vector classifier
-svc_error <- LogLoss(test$Diabetes_binary, 
-                     attributes(pred_svc)$probabilities[,2])
+svc_error <- LogLoss(test$Diabetes_binary, pred_svc[2])
+
 #create data frame to compare the results
 (df_log_loss_errors <- 
-  data.frame('log_loss' = c(best_log_model_error, lasso_error, ctree_error, lda_error, svc_error), 
-             row.names = c('Logistic Regression', 'Lasso', 'Classification tree', 'Linear Discriminant Analysis', 'Support Vector Classifier'))
-)
+  data.frame('log_loss' = c(best_log_model_error, lasso_error, ctree_error,
+                            rf_error, lda_error, svc_error), 
+             row.names = c('Logistic Regression', 'Lasso', 'Classification tree',
+                           'Random Forest', 'Linear Discriminant Analysis', 'Support Vector Classifier')))
 ```
 
 As we can see here the best model for our data in this situation is the `r lapply(df_log_loss_errors, function(x) sort(head(row.names(df_log_loss_errors)[order(x)], 1)))[[1]]` model.
+
+
+
