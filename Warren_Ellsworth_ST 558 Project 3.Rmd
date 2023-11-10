@@ -16,7 +16,7 @@ library(scales)
 library(plyr)
 library(GGally)
 library(caret)
-library(e1071)
+library(MASS)
 ```
 
 # Introduction
@@ -693,41 +693,41 @@ Random Forest combines the output of multiple decision trees to reach a single r
 
 Here we are going to make our own random forest model with the diabetes data we are looking at. Since the model is running really slow with our remaining multilevel factors, we are going to make dummy variables for them and hope this runs quicker
 ```{r random forest model}
-library(caret)
-# Make dummy variables for training
-training_dummies <- dummyVars(Diabetes_binary ~ GenHlth + Age + Income, data = train)
-diabetes_train_dummies <- as_tibble(predict(training_dummies, newdata = train))
-training_with_dummies <- cbind(train, diabetes_train_dummies) %>%
-  dplyr::select(-c(GenHlth, 
-                   Age, 
-                   Income)) %>%
-  as_tibble() %>%
-  janitor::clean_names()
-
-# Make dummy variables for testing
-testing_dummies <- dummyVars(Diabetes_binary ~ GenHlth + Age + Income, data = test)
-diabetes_test_dummies <- as_tibble(predict(testing_dummies, newdata = test))
-testing_with_dummies <- cbind(test, diabetes_test_dummies) %>%
-  dplyr::select(-c(GenHlth, 
-                   Age, 
-                   Income)) %>%
-  as_tibble() %>%
-  janitor::clean_names()
+# library(caret)
+# # Make dummy variables for training
+# training_dummies <- dummyVars(Diabetes_binary ~ GenHlth + Age + Income, data = train)
+# diabetes_train_dummies <- as_tibble(predict(training_dummies, newdata = train))
+# training_with_dummies <- cbind(train, diabetes_train_dummies) %>%
+#   dplyr::select(-c(GenHlth, 
+#                    Age, 
+#                    Income)) %>%
+#   as_tibble() %>%
+#   janitor::clean_names()
+# 
+# # Make dummy variables for testing
+# testing_dummies <- dummyVars(Diabetes_binary ~ GenHlth + Age + Income, data = test)
+# diabetes_test_dummies <- as_tibble(predict(testing_dummies, newdata = test))
+# testing_with_dummies <- cbind(test, diabetes_test_dummies) %>%
+#   dplyr::select(-c(GenHlth, 
+#                    Age, 
+#                    Income)) %>%
+#   as_tibble() %>%
+#   janitor::clean_names()
 
 # Make the model
 set.seed(999)
 rf_fit <- train(
-  diabetes_binary ~ ., 
-  data = training_with_dummies,           
+  Diabetes_binary ~ ., 
+  data = train,           
   method = "rf",
   metric = 'logLoss',
   preProcess = c("center", "scale"),
-  trControl = trainControl(method = "cv", number = 1, savePredictions = "all"),
-  tuneGrid = data.frame(mtry = 1:20)
+  trControl = trainControl(method = "cv", number = 1),
+  tuneGrid = data.frame(mtry = 1:3)
 )
 
 # Get predictions 
-rf_predict <- predict(rf_fit, newdata = testing_with_dummies)
+rf_predict <- predict(rf_fit, newdata = train)
 ```
 
 ## Linear Discriminant Analysis
