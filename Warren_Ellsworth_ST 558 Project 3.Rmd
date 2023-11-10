@@ -5,7 +5,9 @@ date: "`r Sys.Date()`"
 urlcolor: blue
 params:
   Education: "Grade 12 or GED -- High school graduate"
-#output: github_document
+output:
+  github_document:
+    html_preview: false
 ---
 
 ```{r setup, include=FALSE}
