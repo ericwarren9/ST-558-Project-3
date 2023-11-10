@@ -52,8 +52,7 @@ Here we are going to read in our `diabetes` data and then combine groups 1 and 2
 )
 ```
 
-We can see that there are many numerical variables that should not be an instead are *factors*. This is something we should correct.
-
+# ADD COMMENTARY
 ```{r render into md files, echo=FALSE, eval=FALSE}
 #get unique education
 educationIDs <- unique(diabetes$Education)
@@ -74,6 +73,8 @@ apply(reports, MARGIN = 1,
 				render(input = "Warren_Ellsworth_ST 558 Project 3.Rmd", output_file = x[[1]], params = x[[2]])
  				})
 ```
+
+We can see that there are many numerical variables that should not be *factors* instead. This is something we should correct.
 
 We can use the [helper website](https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset/) as a tool to tell us which columns should be factors, as opposed to the numeric columns. We are going to convert the corresponding variables to factors.
 ```{r convert to factors}
@@ -154,7 +155,6 @@ colnames(big_cols) <- c("name", "value")
 big_cols <- big_cols %>%
   filter(value == TRUE) # Use big_cols$name to get the list of columns that meet this requirement for later data manipulation
 
-
 # Make a numeric column that is supposed to be yes or no be a factor. 
 # Get the columns that are supposed to be yes or no.
 col_names <- as.data.frame(sapply(diabetes, is.numeric))
@@ -165,7 +165,6 @@ colnames(col_names) <- c("name", "value")
 col_names <- col_names %>%
   mutate(value = ifelse(name %in% big_cols$name, FALSE, value)) %>%
   filter(value == TRUE)
-
 
 # Turn these columns into factors. We also only want yes or no factors right now.
 diabetes[, col_names$name] <- lapply(
@@ -199,7 +198,7 @@ filtered_data <- diabetes %>%
 
 Now we are going to explore our data by doing some different summaries that we are going to outline below.
 
-The first thing we are going to look at is how many people from our observed education level have diabetes. This will give us an idea of how likely it is that a person has diabetes just by knowing their education level. We are going to do this by first making a table showing the breakdown and then making a barplot showing this visually
+The first thing we are going to look at is how many people from our observed education level have diabetes. This will give us an idea of how likely it is that a person has diabetes just by knowing their education level. We are going to do this by first making a table showing the breakdown and then making a bar plot showing this visually
 ```{r diabetes numbers breakdown}
 # Make table
 (diabetes_table <- table(filtered_data$Diabetes_binary))
@@ -300,7 +299,7 @@ filtered_data %>%
 If BMI does have a perceived effect then the histogram for people who do not have diabetes and people who do have it would be different. Otherwise, if the distributions of the histogram look similar between the two then we say that it is plausible that BMI does not have predict (or really correlate) with someone having diabetes.
 
 Lets dig a little bit deeper into the density of BMI by diabetes by
-looking at some summary measures of BMI and visualizing with a boxplot.
+looking at some summary measures of BMI and visualizing with a box plot.
 Here we should be looking for number of outliers and the difference in the IQR 
 for those that have diabetes compared to those who don't.
 ```{r bmi boxplot}
@@ -434,10 +433,7 @@ filtered_data %>%
   scale_x_discrete(guide = guide_axis(n.dodge=2))
 ```
 
-Here we are trying to see any differences in the number of people that make up each category across the different diabetes 
-groups. We'd be interested in seeing if those who don't have diabetes have a higher frequency of positive general
-health categories such as excellent or very good, or good. In contrast, we'd want to see if those who do have diabetes have 
-a higher frequency of individuals with poorer health. This may indicate general health conditions being a good predictor to use in classifying whether a person has or does not have diabetes.
+Here we are trying to see any differences in the number of people that make up each category across the different diabetes groups. We'd be interested in seeing if those who don't have diabetes have a higher frequency of positive general health categories such as excellent or very good, or good. In contrast, we'd want to see if those who do have diabetes have a higher frequency of individuals with poorer health. This may indicate general health conditions being a good predictor to use in classifying whether a person has or does not have diabetes.
 
 From the `National Library of Medicine`, there was a publishing that discussed hypertension being twice as frequent in patients with diabetes compared with those who don't. Lets see how that compares with our data, specifically the counts of `high blood pressure` across those who do verse don't have diabetes. We can take this a step further by shading each of the counts by `sex`. We can visualize this with a bar chart for the different groups.
 ```{r high blood pressure box plot}
@@ -461,7 +457,6 @@ filtered_data %>%
 
 Here we are trying to see any differences in the proportion of people who have high blood pressure across the diabetes category. Particular areas of interest would be seeing if those with diabetes generally have a higher number of people with high blood pressure as well. This may indicate high blood pressure being a good predictor to use in classifying whether a person has or does not have diabetes. We can also look for there being a significant difference by sex for those who have high blood pressure.
 
-
 Lastly, one might suspect those with diabetes generally are less active. Lets analyze this by creating a bar plot of `physical activity` across those with and without diabetes. We can further shade to see the proportion of each category by `sex`
 ```{r Physical Activity Box Plot}
 #look at physical activity by sex and diabetes level
@@ -481,7 +476,7 @@ filtered_data %>%
   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
 ```
 
-If there are significant differences in the proportion of people who are physically active without diabetes verse those who have diabetes, there may be a correlation between being physically active and having diabetes. More testing would need to be done, but this can provide some evidence for the inital suspicion.
+If there are significant differences in the proportion of people who are physically active without diabetes verse those who have diabetes, there may be a correlation between being physically active and having diabetes. More testing would need to be done, but this can provide some evidence for the initial suspicion.
 
 # Modeling
 
@@ -524,16 +519,16 @@ Now that we have split our data into a testing and training set, we can start wi
 
 ## Log Loss
 
-Log loss is also known as logarithmic loss or cross-entropy loss. This is used as a common evaluation metric for classification models in which the response variable follows a binomial distribution (or binary). It measures the performance of a model by measuring the difference between predicted probabilities and the actual values. We tend to use log loss because it provides a continuous measure of our model’s performance, which in return makes it very suitable for optimization algorithms. We also like log loss because it penalizes "confident" (meaning predictions that are heavily in one direction -- i.e. saying the prediction is 0.1 is very close to 0) **and** incorrect predictions more heavily, which incentivizes more calibrated or correlated probability estimates. Lastly, log loss is interpreted as the logarithmic measure of the likelihood of predicted probabilities aligning with the true classification. So when comparing other models log loss will do the best at giving us a model with the "most accurate" predictions unlike other methods. Therefore, we will use log loss as lower values indicate better models (and thus, better predictions).
+`Log loss` is also known as `logarithmic loss` or `cross-entropy loss`. This is used as a common evaluation metric for classification models in which the response variable follows a binomial distribution (or binary). It measures the performance of a model by measuring the difference between predicted probabilities and the actual values. We tend to use log loss because it provides a continuous measure of our model’s performance, which in return makes it very suitable for optimization algorithms. We also like log loss because it penalizes "confident" (meaning predictions that are heavily in one direction -- i.e. saying the prediction is 0.1 is very close to 0) **and** incorrect predictions more heavily, which incentivizes more calibrated or correlated probability estimates. Lastly, log loss is interpreted as the logarithmic measure of the likelihood of predicted probabilities aligning with the true classification. So when comparing other models log loss will do the best at giving us a model with the "most accurate" predictions unlike other methods. Therefore, we will use log loss as lower values indicate better models (and thus, better predictions).
 
 ## Logistic Regression
 
-Logistic regression is very similar to linear regression but instead the response variable is binary and estimates the probability of an event occurring. Since the result of this type of model is a probability, the response variable is bounded between 0 and 1. In our case, we are looking at the response variable being the `Diabetes_binary` which is either 0 or 1, which meets this condition. We are also trying to model the probability that someone with certain characteristics gets diabetes (which is the event we are measuring). One last note for logistic regression is that a logit transformation is applied on the odds, as the probability of success divided by the probability of failure. This is known as the log odds where we are using the formula $\ln(\frac{p_i}{1-p_i}) = \beta_0 + \beta_1*X_1 + ... + \beta_n * X_n$ with $n$ being the number of predictors.
+`Logistic regression` is very similar to linear regression but instead the response variable is binary and estimates the probability of an event occurring. Since the result of this type of model is a probability, the response variable is bounded between 0 and 1. In our case, we are looking at the response variable being the `Diabetes_binary` which is either 0 or 1, which meets this condition. We are also trying to model the probability that someone with certain characteristics gets diabetes (which is the event we are measuring). One last note for logistic regression is that a logit transformation is applied on the odds, as the probability of success divided by the probability of failure. This is known as the log odds where we are using the formula $\ln(\frac{p_i}{1-p_i}) = \beta_0 + \beta_1*X_1 + ... + \beta_n * X_n$ with $n$ being the number of predictors.
 
 We are going to use this type of prediction below by supplying 3 different candidate models that use logistic regression and then choose the best 1 from the 3 that will be used in model evaluation later in this report. 
-
-```{r logistic regression variable selection, eval=FALSE, echo=FALSE}
-#set up train control parameter,using 5-fold cross-validation
+```{r logistic regression variable selection}
+#set up train control parameter,using 5-fold cross-validation,
+#using class probabilities and log loss as the metric
 trC <- trainControl(method = 'cv', 
                     number = 5,
                     summaryFunction = mnLogLoss,
@@ -553,7 +548,7 @@ log_model_varImp <- train(
 varImp(log_model_varImp)
 ```
 
-After looking for the most important variables (the code and results are hidden but we then choose the best variables for our models). The first model that we have determined is only first order with no interactions. We are going to only look at some of the top most important variables. These will be listed in our first model.
+After looking for the most important variables, the first model that we have determined is only first order with no interactions. We are going to only look at some of the top most important variables. These will be listed in our first model.
 
 First we are going to make a model that is totally linear with no interactions shown. 
 ```{r logistic regression 1}
@@ -628,7 +623,6 @@ We get our log loss here on the linear model with interaction being `r log_model
 ## LASSO Logistic Regression
 
 `LASSO logistic regression` is an extension of logistic regression, but instead of minimizing a particular loss function, there is a penalty term added to the minimization that shrinks certain coefficient estimates to zero. It can be shown that shrinking coefficient estimates towards zero increases their bias, but significantly reduces their variance, which can be an advantage over traditional logistic regression. A method such as this, particularly with LASSO, also has the benefit of doing feature selection, by exactly setting some coefficient estimates to zero. For `LASSO logistic regression`, the penalty term that is added is lambda * the sum of the absolute value of all the beta coefficients. `Lambda` here is a tuning parameter that serves to control the relative impact of the loss function and penalization on the coefficient estimates. As lambda increases, the penalty term dominates the minimization criterion, and the resulting estimates approach zero. When lambda is zero, we get exactly the loss function being minimized. Choosing the optimal lambda value has to do with the bias-variance trade off. Lambda effectively controls the model complexity, where small lambda values are closer to the loss function being minimized, which has lower bias but higher variance. Higher values of lambda on the other hand lead to a less flexible model, which has higher bias but lower variance. The optimal lambda value is typically selected through cross-validation by minimizing the test error, which we will do below.
-
 ```{r}
 #create a grid of the lambda values we want tuned
 lasso_grid <- 10^seq(-3, 7, length = 100)
@@ -679,7 +673,7 @@ class.tree.fit$bestTune
 
 Random Forest combines the output of multiple decision trees to reach a single result that can be used on both regression and classification problems. In this modeling technique, we can say that the model builds a forest, which is an ensemble of decision trees, which are usually trained with bagging. Bagging is a method that combines different learning models which in return will increase the efficiency of the overall result.The final value that we get from the model is the average of all the predictions or estimates created by each individual tree. Unlike classification trees, random forest uses multiple trees which prevents error that may arise due to overfitting our model. Thus, we tend to get more accurate predictions than we do from a classification tree. Lastly, random forest tends to be a better learning model as it uses these multiple trees and not depend as much on the training data. So this is why we prefer to use random forest over classification trees.
 
-Here we are going to make our own random forest model with the diabetes data we are looking at. Since the model is running really slow with our remaining multilevel factors, we are going to make dummy variables for them and hope this runs quicker
+Here we are going to make our own random forest model with the diabetes data we are looking at. To improve efficiency, we will tune the hyperparameter using a subset of the training data, and using the optimal tuning parameter, we will train the model on the entire training data.
 ```{r random forest model}
 #create a random sample from the training data set to tune the parameter
 set.seed(999)
@@ -692,11 +686,12 @@ rf_grid <- expand.grid(mtry = seq(from = 1, to = 8, by = 1))
 rf.tune <- train(Diabetes_binary ~ ., 
                 data = train2,
                 method = "rf",
+                #select log loss as metric to use for selecting optimal model
                 metric = 'logLoss',
                 preProcess = c("center", "scale"),
                 tuneGrid = rf_grid,
                 trControl = trC)
-#set up train control parameter, using method = none
+#set up new train control parameter, using method = none
 trC2 <- trainControl(method = 'none', 
                     summaryFunction = mnLogLoss,
                     classProbs =  TRUE)
@@ -704,9 +699,12 @@ trC2 <- trainControl(method = 'none',
 rf.fit <- train(Diabetes_binary ~ ., 
                 data = train,
                 method = "rf",
+                #select log loss as metric to use for selecting optimal model
                 metric = 'logLoss',
                 preProcess = c("center", "scale"),
+                #use optimal mtry from the tuning above
                 tuneGrid = data.frame(mtry = rf.tune$bestTune),
+                #use new train control
                 trControl = trC2)
 ```
 
@@ -732,7 +730,7 @@ lda_fit <- train(
 
 A `support vector classifier` is equivalent to a `support vector machine` using a polynomial kernel of degree equal to 1 and is an extension of the `maximal margin classifier`. A maximal margin classifier aims to fit a `separating hyperplane` to the data that perfectly separates the two classes, where the two classes are coded as -1 and 1. Since the separating hyperplane perfectly separates the two classes, the response multiplied by the output of the separating hyperplane evaluated at the predictors, is greater than zero. For new observations, the prediction is the sign of the output, or classified based on which side of the hyperplane it is located. One way to find this separating hyperplane is by minimizing the distance of misclassified points to the decision boundary. If the classes are perfectly separable, than there are infinitely many separating hyperplanes. The best separating hyperplane is one that maximizes the `margin` around the separating plane, where the margin is the minimal distance from the observations to the hyperplane. Naturally, if the two classes are not linearly separable, there is not a separating hyperplane that entirely separates the groups, that is, the maximal margin classifier cannot be computed. This is where the support vector classifier comes in, which generalizes the ideas of the maximal margin classifier to develop a classification rule that almost separates the classes. The support vector classifier allows a few points to fall on the wrong side of the margin or separating hyperplane. Often, the support vector classifier is still used even when the maximal margin classifier can be computed, because the maximal margin hyperplane is highly variable. The support vector classifier gives each data point a `slack variable`, that allows individual data points to be on the wrong side of the margin or the separating hyperplane. The support vector classifier then attempts to maximize the margin such that the sum of the slack variables is less than a `pre-specified constant`. This pre-specified constant is the constraint that can be tuned to find the optimal or best model. By solving the optimization problem, it can be shown that the classifier is only affected by the observations that lie on the margin or that violates the margin.
 
-Here we will now fit a support vector classification and find the best tree by tuning the `cost` parameter. For the ease of computation, the cost parameter will be tuned on a portion of the data. The optimal cost value will then be used in a separate `svm` function call on the whole training data.
+Here we will now fit a support vector classification and find the best tree by tuning the `cost` parameter. For the ease of computation, the cost parameter will be tuned on a portion of the data. The optimal cost value will then be used in a separate `train` function call on the whole training data.
 ```{r}
 #create data frame of tuning parameter
 class_svc_grid <- expand.grid(cost = exp(seq(-5, 3, len = 15)))
@@ -757,7 +755,7 @@ class.svc.fit <- train(Diabetes_binary ~ BMI + PhysHlth,
 
 # Final Model Selection
 
-We now have our six best models that we want to compare on the test set to declare the overall best model. To do this, we will create a function that calculates the log loss, our metric of interest, and evaluate this on the real response values and predictions for each of the models.
+We now have our six best models that we want to compare on the test set to declare the overall best model. To do this, we will calculate the log loss, our metric of interest, and evaluate this on the real response values and predictions for each of the models.
 ```{r}
 #find predictions using the lasso fit and test set
 pred_lasso <- predict(lasso_fit, 
@@ -779,7 +777,6 @@ pred_lda <- predict(lda_fit,
 pred_svc <- predict(class.svc.fit, 
                     newdata = test[, c('BMI', 'PhysHlth')],
                     type = 'prob')
-
 
 #calculate log loss of lasso fit
 lasso_error <- LogLoss(test$Diabetes_binary, pred_lasso[2])
