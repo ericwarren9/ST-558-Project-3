@@ -789,6 +789,14 @@ pred_ctree <- predict(class.tree.fit,
 pred_rf <- predict(rf.fit, 
                newdata = test,
                type = 'prob')
+# Fix the zero prediction  (comes from trace being too small for R to tell. We are going to call prediction .000001)
+pred_rf <- pred_rf %>%
+  mutate(
+    no = ifelse(yes == 0, 1-.000001, no),
+    yes = ifelse(yes == 0, .000001,
+                 ifelse(no == 0, 1-.000001, yes)),
+    no = ifelse(no == 0, .000001, no)
+  )
 
 #find predictions using the lda fit and test set
 pred_lda <- predict(lda_fit, 
