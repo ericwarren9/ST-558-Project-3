@@ -727,7 +727,10 @@ rf_fit <- train(
 )
 
 # Get predictions 
-rf_predict <- predict(rf_fit, newdata = train)
+rf_predict <- predict(rf_fit, newdata = train, type = "prob")
+
+# Get log loss error
+(rf_error <- LogLoss(test$Diabetes_binary, rf_predict))
 ```
 
 ## Linear Discriminant Analysis
@@ -750,12 +753,10 @@ lda_fit <- train(
 )
 
 # Make predictions
-pred_lda <- predict(lda_fit, test)
-
-pred_lda <- as.numeric(pred_lda) - 1
+pred_lda <- predict(lda_fit, test, type = "prob")
 
 # Get log loss
-(nb_error <- LogLoss(test$Diabetes_binary, pred_nb))
+(lda_error <- LogLoss(test$Diabetes_binary, pred_lda$yes))
 ```
 
 ## Support Vector Classifier
@@ -795,11 +796,11 @@ We now have our six best models that we want to compare on the test set to decla
 ```{r}
 #find predictions using the lasso fit and test set
 pred_lasso <- predict(lasso_fit, 
-               newdata = test[-1],
+               newdata = test,
                type = 'prob')
 #find predictions using the classification tree fit and test set
 pred_ctree <- predict(class.tree.fit, 
-               newdata = test[-1],
+               newdata = test,
                type = 'prob')
 #find predictions using the support vector classifier and test set
 pred_svc <- predict(class.svm.fit, 
@@ -813,7 +814,10 @@ ctree_error <- LogLoss(test$Diabetes_binary, pred_ctree[2])
 svc_error <- LogLoss(test$Diabetes_binary, 
                      attributes(pred_svc)$probabilities[,2])
 #create data frame to compare the results
-data.frame('log loss' = c(best_log_model_error, lasso_error, ctree_error, svc_error),
-           row.names = c('Logistic Regression', 'Lasso', 'Classification tree', 
-                         'Support Vector Classifier'))
+(df_log_loss_errors <- 
+  data.frame('log_loss' = c(best_log_model_error, lasso_error, ctree_error, lda_error, svc_error), 
+             row.names = c('Logistic Regression', 'Lasso', 'Classification tree', 'Linear Discriminant Analysis', 'Support Vector Classifier'))
+)
 ```
+
+As we can see here the best model for our data in this situation is the `r lapply(df_log_loss_errors, function(x) sort(head(row.names(df_log_loss_errors)[order(x)], 1)))[[1]]` model.
