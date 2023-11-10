@@ -52,7 +52,7 @@ Here we are going to read in our `diabetes` data and then combine groups 1 and 2
 )
 ```
 
-# ADD COMMENTARY HERE
+We can see that there are many numerical variables that should not be an instead are *factors*. This is something we should correct.
 
 ```{r render into md files, echo=FALSE, eval=FALSE}
 #get unique education
@@ -75,7 +75,7 @@ apply(reports, MARGIN = 1,
  				})
 ```
 
-We can see that there are many numerical variables that should not be an instead are *factors*. This is something we should correct. We can use the [helper website](https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset/) as a tool to tell us which columns should be factors, as opposed to the numeric columns. We are going to convert the corresponding variables to factors.
+We can use the [helper website](https://www.kaggle.com/datasets/alexteboul/diabetes-health-indicators-dataset/) as a tool to tell us which columns should be factors, as opposed to the numeric columns. We are going to convert the corresponding variables to factors.
 ```{r convert to factors}
 # Fix the "Sex" column to female and male, along with "GenHlth", "Age", "Education", and "Income"
 diabetes <- diabetes %>%
@@ -696,7 +696,6 @@ rf.tune <- train(Diabetes_binary ~ .,
                 preProcess = c("center", "scale"),
                 tuneGrid = rf_grid,
                 trControl = trC)
-
 #set up train control parameter, using method = none
 trC2 <- trainControl(method = 'none', 
                     summaryFunction = mnLogLoss,
@@ -794,10 +793,9 @@ lda_error <- LogLoss(test$Diabetes_binary, pred_lda[2])
 svc_error <- LogLoss(test$Diabetes_binary, pred_svc[2])
 
 #create data frame to compare the results
-(df_log_loss_errors <- 
-  data.frame('log_loss' = c(best_log_model_error, lasso_error, ctree_error,
+(df_log_loss_errors <- data.frame('log_loss' = c(best_log_model_error, lasso_error, ctree_error,
                             rf_error, lda_error, svc_error), 
-             row.names = c('Logistic Regression', 'Lasso', 'Classification tree',
+                            row.names = c('Logistic Regression', 'Lasso', 'Classification tree',
                            'Random Forest', 'Linear Discriminant Analysis', 'Support Vector Classifier')))
 ```
 
