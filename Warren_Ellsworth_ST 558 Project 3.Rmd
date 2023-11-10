@@ -677,11 +677,11 @@ Here we are going to make our own random forest model with the diabetes data we 
 ```{r random forest model}
 #create a random sample from the training data set to tune the parameter
 set.seed(999)
-index <- createDataPartition(train$Diabetes_binary, p = 0.01, list = FALSE)
+index <- createDataPartition(train$Diabetes_binary, p = 0.05, list = FALSE)
 #index training data
 train2 <- train[index, ]
 #create data frame of tuning parameter
-rf_grid <- expand.grid(mtry = seq(from = 1, to = 8, by = 1))
+rf_grid <- expand.grid(mtry = seq(from = 2, to = 5, by = 1))
 # tune the model with the subsetted training set
 rf.tune <- train(Diabetes_binary ~ ., 
                 data = train2,
@@ -797,6 +797,3 @@ svc_error <- LogLoss(test$Diabetes_binary, pred_svc[2])
 ```
 
 As we can see here the best model for our data in this situation is the `r lapply(df_log_loss_errors, function(x) sort(head(row.names(df_log_loss_errors)[order(x)], 1)))[[1]]` model.
-
-
-
