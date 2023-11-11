@@ -3,6 +3,13 @@ ST 558 Project 3
 Eric Warren
 2023-11-10
 
+-   [Introduction](#introduction)
+-   [Reading in the Data](#reading-in-the-data)
+-   [Summarizations](#summarizations)
+-   [Modeling](#modeling)
+    -   [Log Loss](#log-loss)
+    -   [Logistic Regression](#logistic-regression)
+
 # Introduction
 
 The objective of this program is to create predictive models and
