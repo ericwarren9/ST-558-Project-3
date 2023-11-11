@@ -22,8 +22,8 @@ apply(reports, MARGIN = 1,FUN = function(x){render(input = "Warren_Ellsworth_ST 
 
 Lastly, below are `links` to each `.html` file of the generated analyses for each education level.  
 
-* Analysis for []()  
-* Analysis for []()
-* Analysis for []()
-* Analysis for []()
-* Analysis for []()  
+* Analysis for [College 1 year to 3 years -- Some college or technical school](https://github.com/ericwarren9/ST-558-Project-3/blob/main/College%201%20year%20to%203%20years%20--%20Some%20college%20or%20technical%20school.md)  
+* Analysis for [College 4 years or more -- College graduate](https://github.com/ericwarren9/ST-558-Project-3/blob/main/College%204%20years%20or%20more%20--%20College%20graduate.md)
+* Analysis for [Grade 12 or GED -- High school graduate](https://github.com/ericwarren9/ST-558-Project-3/blob/main/Grade%2012%20or%20GED%20--%20High%20school%20graduate.md)
+* Analysis for [Grades 9 through 11](https://github.com/ericwarren9/ST-558-Project-3/blob/main/Grades%209%20through%2011.md)
+* Analysis for [Never attended school or only kindergarten or Grades 1 through 8](https://github.com/ericwarren9/ST-558-Project-3/blob/main/Never%20attended%20school%20or%20only%20kindergarten%20or%20Grades%201%20through%208.md)  
