@@ -1268,16 +1268,23 @@ class.svc.tune <- train(Diabetes_binary ~ BMI + PhysHlth,
                         metric = 'logLoss',
                         tuneGrid = class_svc_grid,
                         trControl = trC)
-# #find best tuning hyperparameter
-# class.svc.tune$bestTune
-# #train the support vector classifier on the entire training data set, using the 
-# #optimal cost value found with train
-# class.svc.fit <- train(Diabetes_binary ~ BMI + PhysHlth,
-#                        data = train,
-#                        method = 'svmLinear2',
-#                        metric = 'logLoss',
-#                        tuneGrid = data.frame(cost = class.svc.tune$bestTune),
-#                        trControl = trC2)
+
+#find best tuning hyperparameter
+class.svc.tune$bestTune
+```
+
+    ##        cost
+    ## 11 2.042727
+
+``` r
+#train the support vector classifier on the entire training data set, using the
+#optimal cost value found with train
+class.svc.fit <- train(Diabetes_binary ~ BMI + PhysHlth,
+                       data = train,
+                       method = 'svmLinear2',
+                       metric = 'logLoss',
+                       tuneGrid = data.frame(cost = class.svc.tune$bestTune),
+                       trControl = trC2)
 ```
 
 # Final Model Selection
@@ -1325,13 +1332,13 @@ pred_lda <- predict(lda_fit,
                     type = "prob")
 
 #find predictions using the support vector classifier and test set
-# pred_svc <- predict(class.svc.fit, 
-#                     newdata = test[, c('BMI', 'PhysHlth')],
-#                     type = 'prob')
-
-pred_svc <- predict(class.svc.tune, 
+pred_svc <- predict(class.svc.fit,
                     newdata = test[, c('BMI', 'PhysHlth')],
                     type = 'prob')
+
+# pred_svc <- predict(class.svc.tune, 
+#                     newdata = test[, c('BMI', 'PhysHlth')],
+#                     type = 'prob')
 
 #calculate log loss of lasso fit
 lasso_error <- LogLoss(test$Diabetes_binary, pred_lasso[2])
@@ -1362,7 +1369,7 @@ svc_error <- LogLoss(test$Diabetes_binary, pred_svc[2])
     ## Classification tree          0.3743722
     ## Random Forest                0.3747520
     ## Linear Discriminant Analysis 0.3430269
-    ## Support Vector Classifier    0.4204831
+    ## Support Vector Classifier    0.4175649
 
 As we can see here the best model for our data in this situation is the
 Logistic Regression model.
