@@ -1336,10 +1336,6 @@ pred_svc <- predict(class.svc.fit,
                     newdata = test[, c('BMI', 'PhysHlth')],
                     type = 'prob')
 
-# pred_svc <- predict(class.svc.tune, 
-#                     newdata = test[, c('BMI', 'PhysHlth')],
-#                     type = 'prob')
-
 #calculate log loss of lasso fit
 lasso_error <- LogLoss(test$Diabetes_binary, pred_lasso[2])
 
