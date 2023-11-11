@@ -1,7 +1,7 @@
 ST 558 Project 3
 ================
 Eric Warren
-2023-11-10
+2023-11-11
 
 -   [Introduction](#introduction)
 -   [Reading in the Data](#reading-in-the-data)
@@ -890,7 +890,7 @@ LogLoss <- function(actual, predicted) {
   #change yes no of response, to binary 1 0
   actual <- if_else(actual == 'yes', 1, 0)
   #formula for log loss
-  result <- -1/length(actual)*(sum((actual*log(predicted)+(1-actual)*log(1-predicted))))
+  result <- (-1/length(actual))*(sum((actual*log(predicted)+(1-actual)*log(1-predicted))))
   return(result)}
 
 # Make predictions
@@ -1297,6 +1297,14 @@ pred_lasso <- predict(lasso_fit,
 pred_ctree <- predict(class.tree.fit, 
                newdata = test,
                type = 'prob')
+# Fix the zero prediction  (comes from trace being too small for R to tell. We are going to call prediction .000001)
+pred_ctree <- pred_ctree %>%
+  mutate(
+    no = ifelse(yes == 0, 1-.000001, no),
+    yes = ifelse(yes == 0, .000001,
+                 ifelse(no == 0, 1-.000001, yes)),
+    no = ifelse(no == 0, .000001, no)
+  )
 
 #find predictions using the random forest tree fit and test set
 pred_rf <- predict(rf.fit, 
@@ -1351,7 +1359,7 @@ svc_error <- LogLoss(test$Diabetes_binary, pred_svc[2])
     ##                               log_loss
     ## Logistic Regression          0.3359533
     ## Lasso                        0.3363013
-    ## Classification tree                NaN
+    ## Classification tree          0.3743722
     ## Random Forest                0.3747520
     ## Linear Discriminant Analysis 0.3430269
     ## Support Vector Classifier    0.4204831
