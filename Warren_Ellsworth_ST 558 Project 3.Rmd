@@ -54,7 +54,6 @@ Here we are going to read in our `diabetes` data and then combine groups 1 and 2
 )
 ```
 
-# ADD COMMENTARY
 ```{r render into md files, echo=FALSE, eval=FALSE}
 #get unique education
 educationIDs <- unique(diabetes$Education)
@@ -72,7 +71,13 @@ reports <- tibble(output_file, params)
 library(rmarkdown)
 apply(reports, MARGIN = 1,
       FUN = function(x){
-				render(input = "Warren_Ellsworth_ST 558 Project 3.Rmd", output_file = x[[1]], params = x[[2]])
+				render(input = "Warren_Ellsworth_ST 558 Project 3.Rmd", 
+				       output_file = x[[1]], params = x[[2]], 
+				       output_format = "github_document", output_options = list(
+                    html_preview = FALSE,
+                    toc = TRUE,
+                    toc_depth = 3,
+                    toc_float = TRUE))
  				})
 ```
 
@@ -189,13 +194,9 @@ diabetes
 
 The first thing we want to do is subset our data by an education level. We are perform this first before looking at some different aspects of exploratory data analysis.
 ```{r filter data}
-# Change this for automation (this is just to make it easier for us right now)
-filtered_data <- diabetes %>% 
-  filter(Education == "Grade 12 or GED -- High school graduate")
-
 # Automated filtering to get data for correct file
-# filtered_data <- diabetes %>% 
-#   filter(Education = params$Education)
+filtered_data <- diabetes %>%
+  filter(Education == params$Education)
 ```
 
 Now we are going to explore our data by doing some different summaries that we are going to outline below.
@@ -639,16 +640,16 @@ lasso_grid <- 10^seq(-3, 7, length = 100)
 set.seed(10)
 #train the model using glmnet  on the training data set
 lasso_fit <- train(Diabetes_binary ~ .,
-                 data = train,
-                 method = 'glmnet', 
-                 #center and scale predictors
-                 preProcess = c('center', 'scale'),
-                 #select log loss as metric to use for selecting optimal model
-                 metric = 'logLoss',
-                 #set alpha to 1 for lasso, and lambda equal to grid object
-                 tuneGrid = expand.grid(alpha = 1, lambda = lasso_grid),
-                 #perform 5 fold cv
-                 trControl = trC)
+                   data = train,
+                   method = 'glmnet', 
+                   #center and scale predictors
+                   preProcess = c('center', 'scale'),
+                   #select log loss as metric to use for selecting optimal model
+                   metric = 'logLoss',
+                   #set alpha to 1 for lasso, and lambda equal to grid object
+                   tuneGrid = expand.grid(alpha = 1, lambda = lasso_grid),
+                   #perform 5 fold cv
+                   trControl = trC)
 
 #use predict function with final model and best tune to get coefficients
 #of best model
