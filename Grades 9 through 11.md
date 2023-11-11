@@ -9,6 +9,12 @@ Eric Warren
 -   [Modeling](#modeling)
     -   [Log Loss](#log-loss)
     -   [Logistic Regression](#logistic-regression)
+    -   [LASSO Logistic Regression](#lasso-logistic-regression)
+    -   [Classification Tree](#classification-tree)
+    -   [Random Forest](#random-forest)
+    -   [Linear Discriminant Analysis](#linear-discriminant-analysis)
+    -   [Support Vector Classifier](#support-vector-classifier)
+-   [Final Model Selection](#final-model-selection)
 
 # Introduction
 
@@ -960,3 +966,395 @@ rate. We will use this to compare to other models later.
 ```
 
     ## [1] 0.4750215
+
+## LASSO Logistic Regression
+
+`LASSO logistic regression` is an extension of logistic regression, but
+instead of minimizing a particular loss function, there is a penalty
+term added to the minimization that shrinks certain coefficient
+estimates to zero. It can be shown that shrinking coefficient estimates
+towards zero increases their bias, but significantly reduces their
+variance, which can be an advantage over traditional logistic
+regression. A method such as this, particularly with LASSO, also has the
+benefit of doing feature selection, by exactly setting some coefficient
+estimates to zero. For `LASSO logistic regression`, the penalty term
+that is added is lambda \* the sum of the absolute value of all the beta
+coefficients. `Lambda` here is a tuning parameter that serves to control
+the relative impact of the loss function and penalization on the
+coefficient estimates. As lambda increases, the penalty term dominates
+the minimization criterion, and the resulting estimates approach zero.
+When lambda is zero, we get exactly the loss function being minimized.
+Choosing the optimal lambda value has to do with the bias-variance trade
+off. Lambda effectively controls the model complexity, where small
+lambda values are closer to the loss function being minimized, which has
+lower bias but higher variance. Higher values of lambda on the other
+hand lead to a less flexible model, which has higher bias but lower
+variance. The optimal lambda value is typically selected through
+cross-validation by minimizing the test error, which we will do below.
+
+``` r
+#create a grid of the lambda values we want tuned
+lasso_grid <- 10^seq(-3, 7, length = 100)
+
+#set seed for reproducibility
+set.seed(10)
+#train the model using glmnet  on the training data set
+lasso_fit <- train(Diabetes_binary ~ .,
+                   data = train,
+                   method = 'glmnet', 
+                   #center and scale predictors
+                   preProcess = c('center', 'scale'),
+                   #select log loss as metric to use for selecting optimal model
+                   metric = 'logLoss',
+                   #set alpha to 1 for lasso, and lambda equal to grid object
+                   tuneGrid = expand.grid(alpha = 1, lambda = lasso_grid),
+                   #perform 5 fold cv
+                   trControl = trC)
+
+#use predict function with final model and best tune to get coefficients
+#of best model
+predict(lasso_fit$finalModel, s = lasso_fit$bestTune$lambda, type="coef")
+```
+
+    ## 41 x 1 sparse Matrix of class "dgCMatrix"
+    ##                                              s1
+    ## (Intercept)                        -1.442294351
+    ## BMI                                 0.387697291
+    ## GenHlthvery good                   -0.060086915
+    ## GenHlthgood                         0.141868463
+    ## GenHlthfair                         0.289787945
+    ## GenHlthpoor                         0.320368801
+    ## MentHlth                           -0.038287172
+    ## PhysHlth                           -0.026005576
+    ## Age25-29                           -0.165509863
+    ## Age30-34                           -0.088006954
+    ## Age35-39                           -0.081484033
+    ## Age40-44                           -0.009976723
+    ## Age45-49                            .          
+    ## Age50-54                            .          
+    ## Age55-59                            0.082889615
+    ## Age60-64                            0.172112109
+    ## Age65-69                            0.138653181
+    ## Age70-74                            0.183831951
+    ## Age75-79                            0.139444357
+    ## Age80+                              0.109574967
+    ## Income$10,000 to less than $15,000  0.013635086
+    ## Income$15,000 to less than $20,000  0.029304156
+    ## Income$20,000 to less than $25,000  0.016149763
+    ## Income$25,000 to less than $35,000 -0.028057327
+    ## Income$35,000 to less than $50,000 -0.089514506
+    ## Income$50,000 to less than $75,000 -0.008744560
+    ## Income$75,000 or more              -0.038354678
+    ## HighBP                              0.381822718
+    ## HighChol                            0.275529600
+    ## CholCheck                           0.177819094
+    ## Smoker                             -0.007979743
+    ## Stroke                              .          
+    ## HeartDiseaseorAttack                0.024468831
+    ## PhysActivity                        .          
+    ## Fruits                              0.015241653
+    ## Veggies                            -0.004791480
+    ## HvyAlcoholConsump                  -0.111538678
+    ## AnyHealthcare                       0.104776420
+    ## NoDocbcCost                         0.011888951
+    ## DiffWalk                            0.105620847
+    ## Sex                                 0.053384744
+
+## Classification Tree
+
+A `classification tree` partitions the feature space into a set of
+regions, and then fits a simple model in each region. Classification
+trees are conceptually easy to understand and are useful if the goal of
+the statistical model is interpretation. The model first splits the
+space into two regions, and models the response typically by the
+majority classification in each region. The variable and split-point are
+chosen to achieve the best fit and then one or both of these regions are
+split into two more regions, and this process is continued until a
+stopping criterion is applied. The model is represented by a
+`binary tree` for the splits, which is highly interpretable. The feature
+space partition is fully described by a single tree. The binary tree
+starts with the `root node`, or the first split, and each split creates
+a new `branch`. Further split points are called `internal nodes`, and
+the terminal nodes where classification is done, are called the
+`leaves`. When interpreting a classification tree, interests often
+include the class prediction corresponding to a particular leaf and the
+class proportions among the training observations that fall into that
+leaf region. To create a classification tree, the predictor to split on,
+the split point, and the depth of the tree all need to be determined.
+For selecting the predictor to split on and the split point, often a
+measure of node impurity is used to do this, as an ideal node would be
+one where all observations are from the same class. Computationally,
+this is done by searching every distinct value of every predictor to
+find the predictor and split point that partitions the data into two
+groups such that the class that maximizes the proportion of training
+observations from that class is maximized. To find the optimal depth of
+the tree, two methods such as `early stopping` or `pruning` are used.
+Early stopping restricts tree growth explicitly using a pre-set
+criterion, while pruning grows a very large, complex tree, and is pruned
+back to obtain a sub-tree the collapses some of the internal nodes. The
+pruning is done by tuning a parameter that controls a trade-off between
+the subtree’s complexity and its fit to the training data.
+
+Here we will now fit a classification tree and find the best tree by
+tuning the `cp` parameter.
+
+``` r
+#create data frame of tuning parameter
+class_tree_grid <- expand.grid(cp = seq(from = 0.001, to = 0.1, by = .001))
+
+#set seed for reproducibility
+set.seed(10)
+#train the model using rpart  on the training data set
+class.tree.fit <- train(Diabetes_binary ~ .,
+                 data = train,
+                 method = 'rpart',
+                 #center and scale predictors
+                 preProcess = c('center', 'scale'),
+                 #select log loss as metric to use for selecting optimal model
+                 metric = 'logLoss',
+                 tuneGrid = class_tree_grid,
+                 trControl = trC)
+
+#find best tuning hyperparameter
+class.tree.fit$bestTune
+```
+
+    ##      cp
+    ## 8 0.008
+
+## Random Forest
+
+Random Forest combines the output of multiple decision trees to reach a
+single result that can be used on both regression and classification
+problems. In this modeling technique, we can say that the model builds a
+forest, which is an ensemble of decision trees, which are usually
+trained with bagging. Bagging is a method that combines different
+learning models which in return will increase the efficiency of the
+overall result. The final value that we get from the model is the
+average of all the predictions or estimates created by each individual
+tree. Random forest uses a subset of predictors at each split for each
+tree. Unlike classification trees, random forest uses multiple trees
+which prevents error that may arise due to overfitting our model. Thus,
+we tend to get more accurate predictions than we do from a
+classification tree. Lastly, random forest tends to be a better learning
+model as it uses these multiple trees and not depend as much on the
+training data. So this is why we prefer to use random forest over
+classification trees.
+
+Here we are going to make our own random forest model with the diabetes
+data we are looking at. To improve efficiency, we will tune the
+hyperparameter using a subset of the training data, and using the
+optimal tuning parameter, we will train the model on the entire training
+data.
+
+``` r
+#create a random sample from the training data set to tune the parameter
+set.seed(999)
+index <- createDataPartition(train$Diabetes_binary, p = 0.05, list = FALSE)
+
+#index training data
+train2 <- train[index, ]
+
+#create data frame of tuning parameter
+rf_grid <- expand.grid(mtry = seq(from = 2, to = 5, by = 1))
+
+# tune the model with the subsetted training set
+rf.tune <- train(Diabetes_binary ~ ., 
+                data = train2,
+                method = "rf",
+                #select log loss as metric to use for selecting optimal model
+                metric = 'logLoss',
+                preProcess = c("center", "scale"),
+                tuneGrid = rf_grid,
+                trControl = trC)
+
+#set up new train control parameter, using method = none
+trC2 <- trainControl(method = 'none', 
+                    summaryFunction = mnLogLoss,
+                    classProbs =  TRUE)
+
+#train the model on entire training set with optimal mtry
+rf.fit <- train(Diabetes_binary ~ ., 
+                data = train,
+                method = "rf",
+                #select log loss as metric to use for selecting optimal model
+                metric = 'logLoss',
+                preProcess = c("center", "scale"),
+                #use optimal mtry from the tuning above
+                tuneGrid = data.frame(mtry = rf.tune$bestTune),
+                #use new train control
+                trControl = trC2)
+```
+
+## Linear Discriminant Analysis
+
+Linear Discriminant Analysis (LDA) is a technique that is used for
+classification as a dimension reduction technique. It is used to find a
+linear combination of features that best separates the classes in our
+data. It does this by finding a set of linear discriminant values which
+maximizes the ratio of between-class variance to within-class variance.
+Some reasons we like to use this modeling technique is because it can
+work well even if the number of features is larger than the number of
+training samples and it can handle multicollinearity (or correlation
+between features) in the data.
+
+We are going to try to fit a model for ourselves using this new
+technique of Linear Discriminant Analysis.
+
+``` r
+# Set seed for reproducibility
+set.seed(999)
+# Train the first model we create
+lda_fit <- train(
+  Diabetes_binary ~ ., 
+  data = train, 
+  method = "lda",
+  metric = "logLoss",
+  preProcess = c("scale", "center"), 
+  trControl = trC)
+```
+
+## Support Vector Classifier
+
+A `support vector classifier` is equivalent to a
+`support vector machine` using a polynomial kernel of degree equal to 1
+and is an extension of the `maximal margin classifier`. A maximal margin
+classifier aims to fit a `separating hyperplane` to the data that
+perfectly separates the two classes, where the two classes are coded as
+-1 and 1. Since the separating hyperplane perfectly separates the two
+classes, the response multiplied by the output of the separating
+hyperplane evaluated at the predictors, is greater than zero. For new
+observations, the prediction is the sign of the output, or classified
+based on which side of the hyperplane it is located. One way to find
+this separating hyperplane is by minimizing the distance of
+misclassified points to the decision boundary. If the classes are
+perfectly separable, than there are infinitely many separating
+hyperplanes. The best separating hyperplane is one that maximizes the
+`margin` around the separating plane, where the margin is the minimal
+distance from the observations to the hyperplane. Naturally, if the two
+classes are not linearly separable, there is not a separating hyperplane
+that entirely separates the groups, that is, the maximal margin
+classifier cannot be computed. This is where the support vector
+classifier comes in, which generalizes the ideas of the maximal margin
+classifier to develop a classification rule that almost separates the
+classes. The support vector classifier allows a few points to fall on
+the wrong side of the margin or separating hyperplane. Often, the
+support vector classifier is still used even when the maximal margin
+classifier can be computed, because the maximal margin hyperplane is
+highly variable. The support vector classifier gives each data point a
+`slack variable`, that allows individual data points to be on the wrong
+side of the margin or the separating hyperplane. The support vector
+classifier then attempts to maximize the margin such that the sum of the
+slack variables is less than a `pre-specified constant`. This
+pre-specified constant is the constraint that can be tuned to find the
+optimal or best model. By solving the optimization problem, it can be
+shown that the classifier is only affected by the observations that lie
+on the margin or that violates the margin.
+
+Here we will now fit a support vector classification and find the best
+tree by tuning the `cost` parameter. For the ease of computation, the
+cost parameter will be tuned on a portion of the data. The optimal cost
+value will then be used in a separate `train` function call on the whole
+training data.
+
+``` r
+#create data frame of tuning parameter
+class_svc_grid <- expand.grid(cost = exp(seq(-5, 3, len = 15)))
+
+#train the model using svmLinear2  on the training data set
+class.svc.tune <- train(Diabetes_binary ~ BMI + PhysHlth,
+                        data = train2,
+                        method = 'svmLinear2',
+                        metric = 'logLoss',
+                        tuneGrid = class_svc_grid,
+                        trControl = trC)
+# #find best tuning hyperparameter
+# class.svc.tune$bestTune
+# #train the support vector classifier on the entire training data set, using the 
+# #optimal cost value found with train
+# class.svc.fit <- train(Diabetes_binary ~ BMI + PhysHlth,
+#                        data = train,
+#                        method = 'svmLinear2',
+#                        metric = 'logLoss',
+#                        tuneGrid = data.frame(cost = class.svc.tune$bestTune),
+#                        trControl = trC2)
+```
+
+# Final Model Selection
+
+We now have our six best models that we want to compare on the test set
+to declare the overall best model. To do this, we will calculate the log
+loss, our metric of interest, and evaluate this on the real response
+values and predictions for each of the models.
+
+``` r
+#find predictions using the lasso fit and test set
+pred_lasso <- predict(lasso_fit, 
+               newdata = test,
+               type = 'prob')
+
+#find predictions using the classification tree fit and test set
+pred_ctree <- predict(class.tree.fit, 
+               newdata = test,
+               type = 'prob')
+
+#find predictions using the random forest tree fit and test set
+pred_rf <- predict(rf.fit, 
+               newdata = test,
+               type = 'prob')
+# Fix the zero prediction  (comes from trace being too small for R to tell. We are going to call prediction .000001)
+pred_rf <- pred_rf %>%
+  mutate(
+    no = ifelse(yes == 0, 1-.000001, no),
+    yes = ifelse(yes == 0, .000001,
+                 ifelse(no == 0, 1-.000001, yes)),
+    no = ifelse(no == 0, .000001, no)
+  )
+
+#find predictions using the lda fit and test set
+pred_lda <- predict(lda_fit, 
+                    newdata = test, 
+                    type = "prob")
+
+#find predictions using the support vector classifier and test set
+# pred_svc <- predict(class.svc.fit, 
+#                     newdata = test[, c('BMI', 'PhysHlth')],
+#                     type = 'prob')
+
+pred_svc <- predict(class.svc.tune, 
+                    newdata = test[, c('BMI', 'PhysHlth')],
+                    type = 'prob')
+
+#calculate log loss of lasso fit
+lasso_error <- LogLoss(test$Diabetes_binary, pred_lasso[2])
+
+#calculate log loss of classification tree
+ctree_error <- LogLoss(test$Diabetes_binary, pred_ctree[2])
+
+#calculate log loss of rf fit
+rf_error <- LogLoss(test$Diabetes_binary, pred_rf[2])
+
+#calculate log loss of lda fit
+lda_error <- LogLoss(test$Diabetes_binary, pred_lda[2])
+
+#calculate log loss of support vector classifier
+svc_error <- LogLoss(test$Diabetes_binary, pred_svc[2])
+
+
+#create data frame to compare the results
+(df_log_loss_errors <- data.frame('log_loss' = c(best_log_model_error, lasso_error, ctree_error,
+                            rf_error, lda_error, svc_error), 
+                            row.names = c('Logistic Regression', 'Lasso', 'Classification tree',
+                           'Random Forest', 'Linear Discriminant Analysis', 'Support Vector Classifier')))
+```
+
+    ##                               log_loss
+    ## Logistic Regression          0.4750215
+    ## Lasso                        0.4729009
+    ## Classification tree          0.5084354
+    ## Random Forest                0.4960571
+    ## Linear Discriminant Analysis 0.4729506
+    ## Support Vector Classifier    0.5535005
+
+As we can see here the best model for our data in this situation is the
+Lasso model.
