@@ -1,1 +1,8 @@
 theme: jekyll-theme-hacker
+
+include:
+  - College 1 year to 3 years -- Some college or technical school.md
+  - College 4 years or more -- College graduate.md
+  - Grades 12 or GED -- High school graduate.md
+  - Grades 9 through 11.md
+  - Never attended school or only kindergarten or Grades 1 through 8.md
