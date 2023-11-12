@@ -20,6 +20,7 @@ library(GGally)
 library(caret)
 library(MASS)
 library(e1071)
+library(rmarkdown)
 ```
 
 # Introduction
@@ -52,33 +53,6 @@ Here we are going to read in our `diabetes` data and then combine groups 1 and 2
   diabetes <- read_csv("diabetes_binary_health_indicators_BRFSS2015.csv") %>% 
     mutate(Education = ifelse(Education %in% c(1, 2), 1, Education))
 )
-```
-
-```{r render into md files, echo=FALSE, eval=FALSE}
-#get unique education
-educationIDs <- unique(diabetes$Education)
-
-#create filenames
-output_file <- paste0(educationIDs, ".md")
-
-#create a list for each team with just the education name parameter
-params = lapply(educationIDs, FUN = function(x){list(Education = x)})
-
-#put into a data frame 
-reports <- tibble(output_file, params)
-
-# Make a function to render the md files
-library(rmarkdown)
-apply(reports, MARGIN = 1,
-      FUN = function(x){
-				render(input = "Warren_Ellsworth_ST 558 Project 3.Rmd", 
-				       output_file = x[[1]], params = x[[2]], 
-				       output_format = "github_document", output_options = list(
-                    html_preview = FALSE,
-                    toc = TRUE,
-                    toc_depth = 3,
-                    toc_float = TRUE))
- 				})
 ```
 
 We can see that there are many numerical variables that should not be *factors* instead. This is something we should correct.
@@ -185,6 +159,32 @@ diabetes[, col_names$name] <- lapply(
 )
 ```
 
+```{r render into md files, echo=FALSE, eval=FALSE}
+#get unique education
+educationIDs <- unique(diabetes$Education)
+
+#create filenames
+output_file <- paste0(educationIDs, ".md")
+
+#create a list for each team with just the education name parameter
+params = lapply(educationIDs, FUN = function(x){list(Education = x)})
+
+#put into a data frame 
+reports <- tibble(output_file, params)
+
+# Make a function to render the md files
+apply(reports, MARGIN = 1,
+      FUN = function(x){
+				render(input = "Warren_Ellsworth_ST 558 Project 3.Rmd", 
+				       output_file = x[[1]], params = x[[2]], 
+				       output_format = "github_document", output_options = list(
+                    html_preview = FALSE,
+                    toc = TRUE,
+                    toc_depth = 3,
+                    toc_float = TRUE))
+ 				})
+```
+
 Now we have the data in the correct form and we are going to take a quick glance to call the changes so we can see all the new modifications.
 ```{r check data set}
 diabetes
@@ -192,7 +192,7 @@ diabetes
 
 # Summarizations
 
-The first thing we want to do is subset our data by an education level. We are perform this first before looking at some different aspects of exploratory data analysis.
+The first thing we want to do is subset our data by an education level. We are perform this first before looking at some different aspects of exploratory data analysis for the highest education level of `r params$Education`.
 ```{r filter data}
 # Automated filtering to get data for correct file
 filtered_data <- diabetes %>%
@@ -483,7 +483,7 @@ If there are significant differences in the proportion of people who are physica
 
 # Modeling
 
-Now split the data set into a training and testing set. Use $p = 0.7$ as told in the directions. The training data will be used to help make the models and the testing data will help us determine our "best" model. Since we are only looking at one education level we can remove that column since all will be the same in our analysis by education level. Lastly, we need to make dummy variables since we have many factors that could take a very long time to run.
+Now split the data set into a training and testing set for the highest education level of `r params$Education`. Use $p = 0.7$ as told in the directions. The training data will be used to help make the models and the testing data will help us determine our "best" model. Since we are only looking at one education level we can remove that column since all will be the same in our analysis by education level. Lastly, we need to make dummy variables since we have many factors that could take a very long time to run.
 ```{r split data}
 # Remove education level
 filtered_data_for_analysis <- filtered_data %>%
@@ -842,4 +842,4 @@ svc_error <- LogLoss(test$Diabetes_binary, pred_svc[2])
                            'Random Forest', 'Linear Discriminant Analysis', 'Support Vector Classifier')))
 ```
 
-As we can see here the best model for our data in this situation is the `r lapply(df_log_loss_errors, function(x) sort(head(row.names(df_log_loss_errors)[order(x)], 1)))[[1]]` model.
+As we can see here the best model for our data for the highest education level of `r params$Education` is the `r lapply(df_log_loss_errors, function(x) sort(head(row.names(df_log_loss_errors)[order(x)], 1)))[[1]]` model.

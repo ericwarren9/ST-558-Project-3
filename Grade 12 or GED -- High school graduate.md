@@ -262,7 +262,8 @@ diabetes
 
 The first thing we want to do is subset our data by an education level.
 We are perform this first before looking at some different aspects of
-exploratory data analysis.
+exploratory data analysis for the highest education level of Grade 12 or
+GED – High school graduate.
 
 ``` r
 # Automated filtering to get data for correct file
@@ -728,9 +729,10 @@ evidence for the initial suspicion.
 
 # Modeling
 
-Now split the data set into a training and testing set. Use $p = 0.7$ as
-told in the directions. The training data will be used to help make the
-models and the testing data will help us determine our “best” model.
+Now split the data set into a training and testing set for the highest
+education level of Grade 12 or GED – High school graduate. Use $p = 0.7$
+as told in the directions. The training data will be used to help make
+the models and the testing data will help us determine our “best” model.
 Since we are only looking at one education level we can remove that
 column since all will be the same in our analysis by education level.
 Lastly, we need to make dummy variables since we have many factors that
@@ -1367,5 +1369,5 @@ svc_error <- LogLoss(test$Diabetes_binary, pred_svc[2])
     ## Linear Discriminant Analysis 0.3895602
     ## Support Vector Classifier    0.6806967
 
-As we can see here the best model for our data in this situation is the
-Lasso model.
+As we can see here the best model for our data for the highest education
+level of Grade 12 or GED – High school graduate is the Lasso model.

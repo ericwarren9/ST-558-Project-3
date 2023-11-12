@@ -262,7 +262,8 @@ diabetes
 
 The first thing we want to do is subset our data by an education level.
 We are perform this first before looking at some different aspects of
-exploratory data analysis.
+exploratory data analysis for the highest education level of College 1
+year to 3 years – Some college or technical school.
 
 ``` r
 # Automated filtering to get data for correct file
@@ -728,13 +729,14 @@ evidence for the initial suspicion.
 
 # Modeling
 
-Now split the data set into a training and testing set. Use $p = 0.7$ as
-told in the directions. The training data will be used to help make the
-models and the testing data will help us determine our “best” model.
-Since we are only looking at one education level we can remove that
-column since all will be the same in our analysis by education level.
-Lastly, we need to make dummy variables since we have many factors that
-could take a very long time to run.
+Now split the data set into a training and testing set for the highest
+education level of College 1 year to 3 years – Some college or technical
+school. Use $p = 0.7$ as told in the directions. The training data will
+be used to help make the models and the testing data will help us
+determine our “best” model. Since we are only looking at one education
+level we can remove that column since all will be the same in our
+analysis by education level. Lastly, we need to make dummy variables
+since we have many factors that could take a very long time to run.
 
 ``` r
 # Remove education level
@@ -1367,5 +1369,6 @@ svc_error <- LogLoss(test$Diabetes_binary, pred_svc[2])
     ## Linear Discriminant Analysis 0.3430269
     ## Support Vector Classifier    0.4175649
 
-As we can see here the best model for our data in this situation is the
-Logistic Regression model.
+As we can see here the best model for our data for the highest education
+level of College 1 year to 3 years – Some college or technical school is
+the Logistic Regression model.
