@@ -1,6 +1,6 @@
 ST 558 Project 3
 ================
-Eric Warren & Chandler Ellsworth
+Eric Warren & Chandler Ellsworth  
 2023-11-11
 
 -   [Introduction](#introduction)
